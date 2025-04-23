@@ -1,36 +1,119 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name', 'Darah') }}</title>
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ asset('assets/style.css') }}">
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Boxicons CSS -->
+    <link href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css" rel="stylesheet" />
+  </head>
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+  
+  <body>
+    <!-- Navbar -->
+    <header class="navbar" style="border-bottom: 4px solid red;">
+      <div class="logo-name">
+        <i class="bx bxs-droplet" style="color: red; margin-left: 10px;"></i>
+        <span class="logo-text">Pantau Darah .</span>
+      </div>
+    </header>
 
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
+    <div class="main-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar always-show">
+        @if(Auth::user()->role == 'admin')
+        <ul class="lists">
+          <li class="list">
+            <a href="{{ route('admin.dashboard') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Dashboard</span>
+            </a>
+          </li>
+          <li class="list">
+            <a href="{{ route('admin.permintaan') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Data Historis</span>
+            </a>
+          </li>
+          {{-- <li class="list">
+            <a href="{{ route('admin.permintaan') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Tambah Data</span>
+            </a>
+          </li> --}}
+          <li class="list">
+            <a href="{{ route('admin.prediksi') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Prediksi</span>
+            </a>
+          </li>
+          <li class="list">
+            <a href="{{ route('admin.optimasi') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Optimasi</span>
+            </a>
+          </li>
+          <li class="list">
+            <a href="{{ route('admin.pengujian') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Pengujian</span>
+            </a>
+          </li>
+          {{-- <li class="list">
+            <a href="{{ route('admin.users') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Kelola Pengguna</span>
+            </a>
+          </li> --}}
+        </ul>
+        @elseif(Auth::user()->role == 'petugas')
+        <ul class="lists">
+          <li class="list">
+            <a href="{{ route('petugas.dashboard') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Dashboard</span>
+            </a>
+          </li>
+          <li class="list">
+            <a href="{{ route('petugas.permintaan') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Data Historis</span>
+            </a>
+          </li>
+          <li class="list">
+            <a href="{{ route('petugas.prediksi') }}" class="nav-link">
+              <i class="bx bx-home-alt icon"></i>
+              <span class="link">Prediksi</span>
+            </a>
+          </li>
+        </ul>
+        @endif
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
-        </div>
-    </body>
+        <ul class="lists bottom">
+          <li class="list">
+            <form method="POST" action="{{ route('logout') }}">
+              @csrf
+              <a href="{{ route('logout') }}" class="nav-link"
+                 onclick="event.preventDefault(); this.closest('form').submit();">
+                <i class="bx bx-log-out icon"></i>
+                <span class="link">Logout</span>
+              </a>
+            </form>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="content">
+        @yield('content')
+      </main>
+    </div>
+    @stack('scripts')
+  </body>
 </html>
