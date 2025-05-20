@@ -278,14 +278,127 @@
 
 
 /* Halaman Optimasi */
-table {
-  border-collapse: collapse;
-  width: 100%;
+/* ===== VARIABLES ===== */
+:root {
+  --pmi-red: #E53935;
+  --pmi-red-light: #FFCDD2;
+  --pmi-red-dark: #C62828;
 }
 
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
+/* ===== GENERAL OPTIMASI STYLES ===== */
+.optimasi-container {
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.optimasi-header h1 {
+  color: var(--pmi-red);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.optimasi-header i {
+  margin-right: 10px;
+  color: var(--pmi-red);
+}
+
+/* ===== CARD STYLES ===== */
+.optimasi-card .card {
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: none;
+  overflow: hidden;
+}
+
+.optimasi-card .card-body {
+  padding: 2rem;
+}
+
+/* ===== TABLE STYLES ===== */
+.optimasi-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.optimasi-thead {
+  background-color: var(--pmi-red-light);
+}
+
+.optimasi-thead th {
+  font-weight: 600;
+  padding: 12px 15px;
+  border-bottom: 2px solid var(--pmi-red);
+}
+
+.optimasi-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.optimasi-table tr:hover {
+  background-color: rgba(229, 57, 53, 0.05);
+}
+
+/* ===== CHART STYLES ===== */
+.optimasi-chart {
+  height: 400px;
+  margin-top: 2.5rem;
+  position: relative;
+}
+
+/* ===== BUTTON STYLES ===== */
+.btn-pmi-primary {
+  background-color: var(--pmi-red);
+  color: white;
+  border-radius: 8px;
+  padding: 10px 20px;
+  border: none;
+  transition: all 0.3s;
+}
+
+.btn-pmi-primary:hover {
+  background-color: var(--pmi-red-dark);
+  transform: translateY(-2px);
+}
+
+.btn-pmi-outline {
+  border: 1px solid var(--pmi-red);
+  color: var(--pmi-red);
+  border-radius: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  transition: all 0.3s;
+}
+
+.btn-pmi-outline:hover {
+  background-color: var(--pmi-red-light);
+}
+
+/* ===== BADGE STYLES ===== */
+.badge.bg-success {
+  background-color: #28a745 !important;
+}
+
+.badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #212529;
+}
+
+/* Alert Custom */
+.alert {
+  border-left: 4px solid;
+}
+.alert-danger {
+  border-left-color: #e53935;
+}
+.alert-success {
+  border-left-color: #43a047;
+}
+
+/* Table */
+.table-hover tbody tr:hover {
+  background-color: rgba(229, 57, 53, 0.05);
 }
 
 
@@ -511,4 +624,99 @@ body {
 
 .login-box .login-btn:hover {
   background-color: #b91c1c;
+}
+
+
+
+/* Prediksi halaman */
+/* PMI Color Scheme */
+.bg-pmi {
+    background-color: #e53935;
+    background: linear-gradient(135deg, #e53935, #c62828);
+}
+
+.btn-pmi {
+    background-color: #e53935;
+    color: white;
+    border: none;
+}
+
+.btn-pmi:hover {
+    background-color: #c62828;
+    color: white;
+}
+
+.btn-outline-pmi {
+    color: #e53935;
+    border-color: #e53935;
+}
+
+.btn-outline-pmi:hover {
+    background-color: #e53935;
+    color: white;
+}
+
+.text-pmi {
+    color: #e53935 !important;
+}
+
+/* Prediction Styles */
+.prediction-details {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.detail-value {
+    font-weight: 500;
+}
+
+.prediction-value {
+    font-size: 1.5rem;
+    color: #e53935;
+    font-weight: 700;
+}
+
+/* Form Styles */
+.form-select, .form-control {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+}
+
+/* Card Styles */
+.card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .prediction-results .row > div {
+        margin-bottom: 1.5rem;
+    }
+    
+    .detail-item {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .detail-label, .detail-value {
+        width: 100%;
+    }
 }

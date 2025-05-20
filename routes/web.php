@@ -4,8 +4,11 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\PetugasController; 
-use App\Http\Controllers\Auth\AuthenticatedSessionController; 
+use App\Http\Controllers\PetugasController;
+use App\Http\Controllers\PermintaanDarahController;
+use App\Http\Controllers\OptimizationController;
+use App\Http\Controllers\PredictionController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -18,7 +21,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 */
 
 
-// Langsung arahkan root URL ke halaman login
+// halaman login
 Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('login');
 
 // Route login & logout
@@ -28,7 +31,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name
 
 
 // Route untuk Admin
-Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/permintaan', [AdminController::class, 'permintaan'])->name('permintaan');
     Route::get('/prediksi', [AdminController::class, 'prediksi'])->name('prediksi');
@@ -36,7 +39,23 @@ Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(functi
     Route::get('/pengujian', [AdminController::class, 'pengujian'])->name('pengujian');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::get('/input', [AdminController::class, 'input'])->name('input');
+    Route::post('/input', [PermintaanDarahController::class, 'store'])->name('store');
+
+    Route::post('/permintaan/input', [PermintaanDarahController::class, 'create'])->name('permintaan.input');
+    Route::post('/permintaan/store', [PermintaanDarahController::class, 'store'])->name('permintaan.store');
+
+    Route::get('/optimasi', [OptimizationController::class, 'index'])->name('optimasi');
+    Route::post('/optimasi/hitung', [OptimizationController::class, 'hitungAlpha'])->name('optimasi.hitung');
+
+    Route::controller(PredictionController::class)->group(function () {
+        Route::get('/prediksi', 'index')->name('prediksi');
+        Route::post('/prediksi/hitung', 'hitungPrediksi')->name('prediksi.hitung');
+        Route::get('/prediksi/hasil', 'show')->name('prediksi.hasil');
+    });
+
 });
+
+
 
 // Route untuk Petugas
 Route::middleware(['role:petugas'])->prefix('petugas')->name('petugas.')->group(function () {
@@ -45,4 +64,6 @@ Route::middleware(['role:petugas'])->prefix('petugas')->name('petugas.')->group(
     Route::get('/prediksi', [PetugasController::class, 'prediksi'])->name('prediksi');
 });
 
-require __DIR__.'/auth.php';
+
+
+require __DIR__ . '/auth.php';
