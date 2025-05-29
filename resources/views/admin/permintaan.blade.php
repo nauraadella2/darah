@@ -5,22 +5,6 @@
         <div class="header-permintaan">
             <h1>Data Permintaan Darah</h1>
 
-            <div class="filter-group">
-                <select name="tahun" id="tahunFilter" class="filter-select">
-                    <option value="">Semua Tahun</option>
-                    @foreach ($tahunTersedia as $tahun)
-                        <option value="{{ $tahun }}">{{ $tahun }}</option>
-                    @endforeach
-                </select>
-                <select name="golongan" id="golonganFilter" class="filter-select">
-                    <option value="">Semua Golongan</option>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="AB">AB</option>
-                    <option value="O">O</option>
-                </select>
-                <button class="filter-btn" onclick="filterData()">Filter</button>
-            </div>
 
             <div class="action-group">
                 <button class="btn-primary" onclick="openModal()">+ Input Satu Data</button>
@@ -164,7 +148,7 @@
 @endpush
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(document).ready(function() {
             $('#myTable').DataTable({

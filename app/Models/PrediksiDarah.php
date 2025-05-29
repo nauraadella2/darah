@@ -2,36 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use DateTime;
 
 class PrediksiDarah extends Model
 {
-    use HasFactory;
-
     protected $table = 'prediksi_darah';
 
     protected $fillable = [
         'golongan_darah',
-        'tahun',
+        'tahun', 
         'bulan',
         'jumlah',
+        'is_aktual',
         'alpha',
-        'optimized_alpha_id',
+        'beta',
+        'optimasi_id',
         'user_id'
     ];
 
     protected $casts = [
         'tahun' => 'integer',
         'bulan' => 'integer',
-        'jumlah' => 'float',
-        'alpha' => 'float'
+        'jumlah' => 'decimal:2',
+        'is_aktual' => 'boolean',
+        'alpha' => 'decimal:2',
+        'beta' => 'decimal:2'
     ];
 
-    public function optimizedAlpha()
+    public function optimasi()
     {
-        return $this->belongsTo(OptimizedAlpha::class);
+        return $this->belongsTo(Optimasi::class);
     }
 
     public function user()
@@ -39,28 +40,8 @@ class PrediksiDarah extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function getPeriodeAttribute()
+    public function scopePrediksi($query)
     {
-        return DateTime::createFromFormat('!m', $this->bulan)->format('F') . ' ' . $this->tahun;
-    }
-
-    public function getBulanNamaAttribute()
-    {
-        return DateTime::createFromFormat('!m', $this->bulan)->format('F');
-    }
-
-    public function scopeGolongan($query, $golongan)
-    {
-        return $query->where('golongan_darah', $golongan);
-    }
-
-    public function scopeTahun($query, $tahun)
-    {
-        return $query->where('tahun', $tahun);
-    }
-
-    public function scopeBulan($query, $bulan)
-    {
-        return $query->where('bulan', $bulan);
+        return $query->where('is_aktual', false);
     }
 }

@@ -7,15 +7,13 @@ use App\Models\PermintaanDarah;
 
 class PermintaanDarahController extends Controller
 {
-    
-
     public function create()
     {
-        return view('admin.input'); // Form input banyak
+        return view('admin.input');
     }
 
     public function store(Request $request)
-    {   
+    {
         $request->validate([
             'tahun' => 'required|integer',
             'bulan.*' => 'required|integer|min:1|max:12',
@@ -28,56 +26,28 @@ class PermintaanDarahController extends Controller
         $data = [];
 
         foreach ($request->bulan as $index => $bulan) {
-            $data[] = [
-                'tahun' => $request->tahun,
-                'bulan' => $bulan,
-                'gol_a' => $request->gol_a[$index],
-                'gol_b' => $request->gol_b[$index],
-                'gol_ab' => $request->gol_ab[$index],
-                'gol_o' => $request->gol_o[$index],
-                'created_at' => now(),
-                'updated_at' => now(),
+            // Simpan per golongan darah
+            $golonganDarah = [
+                ['golongan' => 'A', 'jumlah' => $request->gol_a[$index]],
+                ['golongan' => 'B', 'jumlah' => $request->gol_b[$index]],
+                ['golongan' => 'AB', 'jumlah' => $request->gol_ab[$index]],
+                ['golongan' => 'O', 'jumlah' => $request->gol_o[$index]],
             ];
+
+            foreach ($golonganDarah as $gol) {
+                $data[] = [
+                    'tahun' => $request->tahun,
+                    'bulan' => $bulan,
+                    'golongan_darah' => $gol['golongan'],
+                    'jumlah' => $gol['jumlah'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
         }
 
         PermintaanDarah::insert($data);
 
         return redirect()->route('admin.permintaan')->with('success', 'Data berhasil disimpan!');
     }
-
-//     public function permintaan()
-// {
-//     $permintaanData = PermintaanDarah::orderBy('tahun', 'desc')
-//         ->orderBy('bulan', 'desc')
-//         ->get();
-
-//     // Format ulang menjadi satu baris per golongan
-//     $dataPermintaan = [];
-//     foreach ($permintaanData as $data) {
-//         $bulanTahun = date('F', mktime(0, 0, 0, $data->bulan, 1)) . ' ' . $data->tahun;
-
-//         $dataPermintaan[] = [
-//             'tanggal' => $bulanTahun,
-//             'golongan' => 'A',
-//             'jumlah' => $data->gol_a,
-//         ];
-//         $dataPermintaan[] = [
-//             'tanggal' => $bulanTahun,
-//             'golongan' => 'B',
-//             'jumlah' => $data->gol_b,
-//         ];
-//         $dataPermintaan[] = [
-//             'tanggal' => $bulanTahun,
-//             'golongan' => 'AB',
-//             'jumlah' => $data->gol_ab,
-//         ];
-//         $dataPermintaan[] = [
-//             'tanggal' => $bulanTahun,
-//             'golongan' => 'O',
-//             'jumlah' => $data->gol_o,
-//         ];
-//     }
-
-//     return view('admin.permintaan', compact('dataPermintaan'));
-// }
 }

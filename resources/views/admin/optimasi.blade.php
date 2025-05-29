@@ -1,173 +1,222 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container py-4">
-        <div class="card shadow">
-            <div class="card-header bg-pmi text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0">
-                        <i class="fas fa-calculator me-2"></i>Optimasi Nilai Alpha
-                    </h3>
-                </div>
-            </div>
-
-            <div class="card-body">
-                <!-- Optimization Form -->
-                <form method="POST" action="{{ route('admin.optimasi.hitung') }}" class="mb-4">
-                    @csrf
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-5">
-                            <label class="form-label">Tahun Mulai</label>
-                            <select name="tahun_mulai" class="form-select" required>
-                                <option value="">Pilih Tahun Mulai</option>
-                                @foreach ($tahunTersedia as $tahun)
-                                    <option value="{{ $tahun }}"
-                                        {{ old('tahun_mulai') == $tahun ? 'selected' : '' }}>
-                                        {{ $tahun }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-5">
-                            <label class="form-label">Tahun Selesai</label>
-                            <select name="tahun_selesai" class="form-select" required>
-                                <option value="">Pilih Tahun Selesai</option>
-                                @foreach ($tahunTersedia as $tahun)
-                                    <option value="{{ $tahun }}"
-                                        {{ old('tahun_selesai') == $tahun ? 'selected' : '' }}>
-                                        {{ $tahun }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-pmi w-100">
-                                <i class="fas fa-play me-2"></i>Proses
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
-                <!-- Results Section -->
-                @if (session('results'))
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Hasil optimasi terbaru untuk periode {{ session('results_period') }}
-                    </div>
-                @endif
-
-                <!-- Optimization Results Table -->
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Golongan Darah</th>
-                                <th>Nilai Alpha</th>
-                                <th>MAPE (%)</th>
-                                <th>RMSE</th>
-                                <th>Periode Data</th>
-                                <th>Terakhir Update</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (['A', 'B', 'AB', 'O'] as $golongan)
-                                @php
-                                    $dataOptimasi = $hasil[$golongan]->first() ?? null;
-                                    $rowColor =
-                                        $dataOptimasi && $dataOptimasi->mape < 10
-                                            ? 'table-success'
-                                            : ($dataOptimasi && $dataOptimasi->mape < 20
-                                                ? 'table-warning'
-                                                : '');
-                                @endphp
-                                <tr class="{{ $rowColor }}">
-                                    <td>Golongan {{ $golongan }}</td>
-                                    <td>{{ $dataOptimasi ? number_format($dataOptimasi->alpha, 2) : '-' }}</td>
-                                    <td>{{ $dataOptimasi ? number_format($dataOptimasi->mape, 2) . '%' : '-' }}</td>
-                                    <td>{{ $dataOptimasi ? number_format($dataOptimasi->rmse, 2) : '-' }}</td>
-                                    <td>
-                                        @if ($dataOptimasi && $dataOptimasi->periode_mulai)
-                                            {{ $dataOptimasi->periode_mulai }} - {{ $dataOptimasi->periode_selesai }}
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td>{{ $dataOptimasi ? $dataOptimasi->updated_at->format('d/m/Y H:i') : '-' }}</td>
-                                    <td>
-                                        @if ($dataOptimasi)
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
-                                                data-bs-target="#detailModal" data-golongan="{{ $golongan }}"
-                                                data-alpha="{{ number_format($dataOptimasi->alpha, 2) }}"
-                                                data-mape="{{ number_format($dataOptimasi->mape, 2) }}"
-                                                data-rmse="{{ number_format($dataOptimasi->rmse, 2) }}"
-                                                data-period="{{ $dataOptimasi->periode_mulai }} - {{ $dataOptimasi->periode_selesai }}"
-                                                data-updated="{{ $dataOptimasi->updated_at->format('d/m/Y H:i') }}">
-                                                <i class="fas fa-eye"></i> Detail
-                                            </button>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div class="container-permintaan">
+    <div class="header-permintaan">
+        <h1>Optimasi Parameter Peramalan</h1>
     </div>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Form Input Langsung di Atas Tabel -->
+    <div class="optimasi-form">
+        <form method="POST" action="{{ route('admin.optimasi.hitung') }}" class="row g-3 align-items-end">
+            @csrf
+            <div class="col-md-4">
+                <label class="form-label">Tahun Mulai</label>
+                <select name="tahun_mulai" class="form-select" required>
+                    <option value="">Pilih Tahun Mulai</option>
+                    @foreach ($tahunTersedia as $tahun)
+                        <option value="{{ $tahun }}">{{ $tahun }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Tahun Selesai</label>
+                <select name="tahun_selesai" class="form-select" required>
+                    <option value="">Pilih Tahun Selesai</option>
+                    @foreach ($tahunTersedia as $tahun)
+                        <option value="{{ $tahun }}">{{ $tahun }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4 d-grid">
+                <button type="submit" class="btn btn-optimasi">
+                    <i class="fas fa-calculator"></i> Hitung Parameter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container mt-4">
+        <table class="data-table" id="optimasiTable">
+            <thead>
+                <tr>
+                    <th>Golongan Darah</th>
+                    <th>Alpha</th>
+                    <th>Beta</th>
+                    <th>MAPE (%)</th>
+                    <th>RMSE</th>
+                    <th>Periode Data</th>
+                    <th>Status Akurasi</th>
+                    <th>Terakhir Update</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (['A', 'B', 'AB', 'O'] as $golongan)
+                    @php
+                        $data = $hasil[$golongan] ?? null;
+                        $mape = $data->mape ?? 0;
+                        
+                        // Warna berdasarkan MAPE
+                        if ($mape < 10) {
+                            $status = 'Sangat Baik';
+                            $badgeClass = 'bg-success';
+                        } elseif ($mape < 20) {
+                            $status = 'Baik';
+                            $badgeClass = 'bg-primary';
+                        } else {
+                            $status = 'Cukup';
+                            $badgeClass = 'bg-warning';
+                        }
+                    @endphp
+                    <tr>
+                        <td>Golongan {{ $golongan }}</td>
+                        <td>{{ $data ? number_format($data->alpha, 2) : '-' }}</td>
+                        <td>{{ $data ? number_format($data->beta, 2) : '-' }}</td>
+                        <td>{{ $data ? number_format($mape, 2).'%' : '-' }}</td>
+                        <td>{{ $data ? number_format($data->rmse, 2) : '-' }}</td>
+                        <td>
+                            @if($data)
+                                {{ $data->periode_mulai }} - {{ $data->periode_selesai }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td>
+                            @if($data)
+                                <span class="badge {{ $badgeClass }}">{{ $status }}</span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td>
+                            @if($data)
+                                {{ $data->updated_at->format('d/m/Y H:i') }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
 @endsection
 
 @push('styles')
-    <style>
-        .bg-pmi {
-            background-color: #e53935;
-            background: linear-gradient(135deg, #e53935, #c62828);
-        }
-
-        .btn-pmi {
-            background-color: #e53935;
-            color: white;
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        .btn-pmi:hover {
-            background-color: #c62828;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .table-success {
-            background-color: rgba(40, 167, 69, 0.1) !important;
-        }
-
-        .table-warning {
-            background-color: rgba(255, 193, 7, 0.1) !important;
-        }
-    </style>
+<style>
+    /* Konsisten dengan halaman data historis */
+    .container-permintaan {
+        max-width: 100%;
+        padding: 20px;
+    }
+    
+    .header-permintaan {
+        margin-bottom: 20px;
+    }
+    
+    .optimasi-form {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .btn-optimasi {
+        background-color: #d32f2f;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        width: 100%;
+    }
+    
+    .btn-optimasi:hover {
+        background-color: #b71c1c;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th {
+        background-color: #d32f2f;
+        color: white;
+        padding: 12px;
+        text-align: left;
+    }
+    
+    .data-table td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .data-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .data-table tr:hover {
+        background-color: #f0f0f0;
+    }
+    
+    /* Badge untuk status akurasi */
+    .badge {
+        padding: 5px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        color: white;
+    }
+    
+    .bg-success {
+        background-color: #388e3c;
+    }
+    
+    .bg-primary {
+        background-color: #1976d2;
+    }
+    
+    .bg-warning {
+        background-color: #ffa000;
+    }
+</style>
 @endpush
 
 @push('scripts')
-    <script>
-        // Year select validation
-        document.querySelector('select[name="tahun_mulai"]').addEventListener('change', function() {
-        var tahunMulai = parseInt(this.value);
-        var tahunSelesaiSelect = document.querySelector('select[name="tahun_selesai"]');
-
-        if (tahunMulai) {
-            Array.from(tahunSelesaiSelect.options).forEach(option => {
-                if (option.value && parseInt(option.value) < tahunMulai) {
-                    option.disabled = true;
-                } else {
-                    option.disabled = false;
+<script>
+    $(document).ready(function() {
+        $('#optimasiTable').DataTable({
+            responsive: true,
+            dom: '<"top"lf>rt<"bottom"ip>',
+            pageLength: 10,
+            language: {
+                search: "Cari:",
+                lengthMenu: "Tampilkan _MENU_ data per halaman",
+                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                paginate: {
+                    first: "Pertama",
+                    last: "Terakhir",
+                    next: "Selanjutnya",
+                    previous: "Sebelumnya"
                 }
+            }
+        });
+        
+        // Validasi tahun selesai >= tahun mulai
+        $('select[name="tahun_mulai"]').change(function() {
+            var tahunMulai = parseInt($(this).val());
+            $('select[name="tahun_selesai"] option').each(function() {
+                var tahun = parseInt($(this).val());
+                $(this).prop('disabled', tahun && tahun < tahunMulai);
             });
-        }
         });
-        });
-    </script>
+    });
+</script>
 @endpush

@@ -8,6 +8,7 @@ use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\PermintaanDarahController;
 use App\Http\Controllers\OptimizationController;
 use App\Http\Controllers\PredictionController;
+use App\Http\Controllers\PengujianController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 /*
 |--------------------------------------------------------------------------
@@ -47,11 +48,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/optimasi', [OptimizationController::class, 'index'])->name('optimasi');
     Route::post('/optimasi/hitung', [OptimizationController::class, 'hitungAlpha'])->name('optimasi.hitung');
 
-    Route::controller(PredictionController::class)->group(function () {
-        Route::get('/prediksi', 'index')->name('prediksi');
-        Route::post('/prediksi/hitung', 'hitungPrediksi')->name('prediksi.hitung');
-        Route::get('/prediksi/hasil', 'show')->name('prediksi.hasil');
-    });
+    Route::get('/prediksi', [PredictionController::class, 'index'])->name('prediksi.index');
+    Route::post('/prediksi/hitung', [PredictionController::class, 'hitungPrediksi'])->name('prediksi.hitung');
+    Route::delete('/prediksi/hapus/{id}', [PredictionController::class, 'destroy'])->name('prediksi.hapus');
+
+    Route::get('/pengujian', [PengujianController::class, 'index'])->name('pengujian.index');
+    Route::post('/pengujian/proses', [PengujianController::class, 'proses'])->name('pengujian.proses');
+    Route::get('/pengujian/filter', [PengujianController::class, 'filter'])->name('pengujian.filter');
 
 });
 

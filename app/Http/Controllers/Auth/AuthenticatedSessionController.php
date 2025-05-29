@@ -19,7 +19,12 @@ class AuthenticatedSessionController extends Controller
     public function create(): View|RedirectResponse
 {
     if (auth()->check()) {
-        return redirect()->route('dashboard');
+        // Redirect berdasarkan role user
+        if (auth()->user()->role == 'admin') {
+            return redirect()->route('admin.dashboard');
+        } else {
+            return redirect()->route('petugas.dashboard');
+        }
     }
 
     return view('auth.login');

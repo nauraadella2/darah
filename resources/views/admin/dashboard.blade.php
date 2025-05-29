@@ -9,10 +9,10 @@
       <h3>Permintaan Darah</h3>
       <p class="jumlah" id="totalPermintaan">120</p>
     </div>
-    <div class="card">
+    {{-- <div class="card">
       <h3>User Terdaftar</h3>
       <p class="jumlah" id="totalUser">15</p>
-    </div>
+    </div> --}}
     <div class="card">
       <h3>Prediksi Aktif</h3>
       <p class="jumlah" id="totalPrediksi">6</p>
@@ -33,7 +33,7 @@
     <a href="{{ route('admin.optimasi') }}" class="shortcut">
       <i class='bx bx-cog'></i> Optimasi Alpha
     </a>
-    <a href="{{ route('admin.pengujian') }}" class="shortcut">
+    {{-- <a href="{{ route('admin.pengujian') }}" class="shortcut"> --}}
       <i class='bx bx-flask'></i> Pengujian
     </a>
   </div>

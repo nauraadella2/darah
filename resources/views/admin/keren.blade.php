@@ -6,10 +6,9 @@
             <h1><i class="fas fa-flask"></i> Pengujian Akurasi Prediksi</h1>
             <p class="subtitle">Evaluasi performa model prediksi permintaan darah</p>
         </div>
-
         <!-- Filter Section -->
         <form method="GET" action="{{ route('admin.pengujian.filter') }}">
-            <div class="testing-filter">
+            <div class="testing-filter" style="display: none">
                 <div class="filter-card">
                     <div class="filter-group">
                         <label>Golongan Darah</label>
@@ -24,11 +23,11 @@
 
                     <div class="filter-group">
                         <label>Tahun</label>
-                        <select name="tahun" class="year-select">
+                        {{-- <select name="tahun" class="year-select">
                             @foreach ($selects->keys() as $tahun)
                                 <option value="{{ $tahun }}">{{ $tahun }}</option>
                             @endforeach
-                        </select>
+                        </select> --}}
                     </div>
 
                     <button type="submit" class="test-button">
@@ -39,7 +38,7 @@
         </form>
 
         <!-- Summary Cards -->
-        <div class="summary-cards">
+        <div class="summary-cards" style="display: none">
             <div class="summary-card">
                 <div class="card-icon bg-red-100">
                     <i class="fas fa-percentage text-red-600"></i>
@@ -70,6 +69,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- Results Section -->
         <div class="results-section">

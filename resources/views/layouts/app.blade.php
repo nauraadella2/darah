@@ -54,7 +54,7 @@
             </a>
           </li> --}}
                     <li class="list">
-                        <a href="{{ route('admin.prediksi') }}" class="nav-link">
+                        <a href="{{ route('admin.prediksi.index') }}" class="nav-link">
                             <i class="bx bx-home-alt icon"></i>
                             <span class="link">Prediksi</span>
                         </a>
@@ -66,7 +66,7 @@
                         </a>
                     </li>
                     <li class="list">
-                        <a href="{{ route('admin.pengujian') }}" class="nav-link">
+                        <a href="{{ route('admin.pengujian.index') }}" class="nav-link">
                             <i class="bx bx-home-alt icon"></i>
                             <span class="link">Pengujian</span>
                         </a>
