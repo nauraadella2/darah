@@ -21,25 +21,13 @@
                     @csrf
                     <div class="form-group">
                         <label>Tahun Prediksi</label>
-                        <select name="tahun" required>
-                            <option value="">Pilih Tahun</option>
-                            @foreach ($tahunPrediksiTersedia as $tahun)
-                                <option value="{{ $tahun }}" {{ old('tahun') == $tahun ? 'selected' : '' }}>
-                                    {{ $tahun }}
-                                </option>
-                            @endforeach
+                        <select name="tahun" required disabled>
+                            <option value="{{ $tahunBerikutnya }}" selected>{{ $tahunBerikutnya }}</option>
                         </select>
                     </div>
-
                     <div class="form-group">
-                        <label>Golongan Darah</label>
-                        <select name="golongan">
-                            <option value="">Semua Golongan</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="AB">AB</option>
-                            <option value="O">O</option>
-                        </select>
+                        <label>Jumlah Bulan Prediksi</label>
+                        <input type="number" name="periods" min="1" max="12" value="6" required>
                     </div>
 
                     <div class="form-group">
@@ -51,6 +39,11 @@
                     <div class="form-group">
                         <label>Beta (β)</label>
                         <input type="number" name="beta" step="0.1" min="0.1" max="0.9"
+                            placeholder="0.1 - 0.9">
+                    </div>
+                    <div class="form-group">
+                        <label>Gamma</label>
+                        <input type="number" name="gamma" step="0.1" min="0.1" max="0.9"
                             placeholder="0.1 - 0.9">
                     </div>
 
@@ -102,6 +95,31 @@
             </div>
         @endif
 
+        <!-- Filter Controls -->
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label for="monthFilter">Filter Bulan:</label>
+                <select id="monthFilter" class="month-filter">
+                    <option value="all">Semua Bulan</option>
+                    @foreach ($availableMonths as $month)
+                        <option value="{{ $month }}">
+                            {{ DateTime::createFromFormat('!m', $month)->format('F') }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="bloodTypeFilter">Filter Golongan Darah:</label>
+                <select id="bloodTypeFilter" class="blood-type-select">
+                    <option value="all">Semua Golongan</option>
+                    <option value="A">Golongan A</option>
+                    <option value="B">Golongan B</option>
+                    <option value="AB">Golongan AB</option>
+                    <option value="O">Golongan O</option>
+                </select>
+            </div>
+        </div>
+
         <!-- Grafik Prediksi -->
         <div class="chart-card">
             <div class="card-header">
@@ -117,37 +135,10 @@
     <div class="history-card">
         <div class="card-header">
             <h3><i class="bx bx-history"></i> Riwayat Prediksi</h3>
-            <form method="GET" action="{{ route('admin.prediksi.index') }}" class="filter-form">
-                <div class="filter-group">
-                    <select name="tahun">
-                        <option value="">Semua Tahun</option>
-                        @foreach (range($lastTrainingYear + 1, date('Y')) as $year)
-                            <option value="{{ $year }}" {{ $request->tahun == $year ? 'selected' : '' }}>
-                                {{ $year }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <select name="bulan">
-                        <option value="">Semua Bulan</option>
-                        @for ($i = 1; $i <= 12; $i++)
-                            <option value="{{ $i }}" {{ $request->bulan == $i ? 'selected' : '' }}>
-                                {{ DateTime::createFromFormat('!m', $i)->format('F') }}
-                            </option>
-                        @endfor
-                    </select>
-                </div>
-
-                <button type="submit" class="btn-filter">
-                    <i class="bx bx-filter-alt"></i> Filter
-                </button>
-            </form>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="history-table">
+                <table class="history-table" id="historyTable">
                     <thead>
                         <tr>
                             <th>Periode</th>
@@ -155,29 +146,89 @@
                             <th>Golongan B</th>
                             <th>Golongan AB</th>
                             <th>Golongan O</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($predictions as $prediction)
-                            <tr>
+                            <tr data-month="{{ $prediction->bulan }}">
                                 <td>{{ DateTime::createFromFormat('!m', $prediction->bulan)->format('F') }}
                                     {{ $prediction->tahun }}</td>
                                 <td>{{ number_format($prediction->gol_a, 0) }}</td>
                                 <td>{{ number_format($prediction->gol_b, 0) }}</td>
                                 <td>{{ number_format($prediction->gol_ab, 0) }}</td>
                                 <td>{{ number_format($prediction->gol_o, 0) }}</td>
+                                <td><strong>{{ number_format($prediction->gol_a + $prediction->gol_b + $prediction->gol_ab + $prediction->gol_o, 0) }}</strong>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="no-data">Tidak ada data prediksi</td>
+                                <td colspan="6" class="no-data">Tidak ada data prediksi</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
+            @if ($predictions->count() > 0)
+                <div class="summary-info" id="summaryInfo">
+                    <p><strong>Total Periode:</strong> <span id="totalPeriods">{{ $predictions->count() }}</span> bulan</p>
+                    <p><strong>Data Terakhir Diprediksi:</strong>
+                        {{ $predictions->first()->created_at->format('d M Y H:i') }}</p>
+                </div>
+            @endif
         </div>
     </div>
     </div>
+
+    <style>
+        .filter-controls {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        @media (max-width: 768px) {
+            .filter-controls {
+                flex-direction: column;
+            }
+
+            .filter-group select {
+                min-width: 100%;
+            }
+        }
+    </style>
 @endsection
 
 @push('scripts')
@@ -188,9 +239,16 @@
 
             // Prepare data from PHP collection
             const prediksiData = @json($prediksi);
+            const predictionsData = @json($predictions->toArray());
+
+            // Store original data for filtering
+            const originalPrediksiData = [...prediksiData];
 
             // Month names
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+            const fullMonthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus',
+                'September', 'Oktober', 'November', 'Desember'
+            ];
 
             // Blood types and their colors
             const bloodTypes = [{
@@ -215,39 +273,83 @@
                 }
             ];
 
-            // Function to get data by blood type
-            function getDataByBloodType(bloodType) {
-                const filtered = prediksiData.filter(item => item.golongan_darah === bloodType);
+            // Get available months from PHP data
+            const availableMonths = @json($availableMonths->toArray());
+
+            // Function to get data by blood type with month filter
+            function getDataByBloodType(bloodType, selectedMonth = 'all') {
+                let filtered = originalPrediksiData.filter(item => item.golongan_darah === bloodType);
+
+                if (selectedMonth !== 'all') {
+                    filtered = filtered.filter(item => item.bulan == selectedMonth);
+                }
+
                 filtered.sort((a, b) => a.bulan - b.bulan);
 
-                // Create array for 12 months, fill with 0 if no data
-                const monthlyData = new Array(12).fill(0);
-                filtered.forEach(item => {
-                    if (item.bulan >= 1 && item.bulan <= 12) {
-                        monthlyData[item.bulan - 1] = parseFloat(item.jumlah);
-                    }
-                });
-
-                return monthlyData;
+                if (selectedMonth !== 'all') {
+                    // For single month, return only that month's data
+                    const monthData = filtered.find(item => item.bulan == selectedMonth);
+                    return monthData ? [parseFloat(monthData.jumlah)] : [0];
+                } else {
+                    // For all months, use only available months from data
+                    const monthlyData = [];
+                    availableMonths.forEach(month => {
+                        const monthData = filtered.find(item => item.bulan == month);
+                        monthlyData.push(monthData ? parseFloat(monthData.jumlah) : 0);
+                    });
+                    return monthlyData;
+                }
             }
 
-            // Prepare datasets for all blood types
-            const datasets = bloodTypes.map(bloodType => ({
-                label: `Golongan ${bloodType.type}`,
-                data: getDataByBloodType(bloodType.type),
-                borderColor: bloodType.color,
-                backgroundColor: bloodType.bgColor,
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true
-            }));
+            // Function to get chart labels based on selected month
+            function getChartLabels(selectedMonth = 'all') {
+                if (selectedMonth !== 'all') {
+                    return [fullMonthNames[parseInt(selectedMonth) - 1]];
+                }
+                // Return labels for available months only
+                return availableMonths.map(month => monthNames[month - 1]);
+            }
+
+            // Function to prepare datasets
+            function prepareDatasets(selectedMonth = 'all', selectedBloodType = 'all') {
+                let datasets = [];
+
+                if (selectedBloodType === 'all') {
+                    datasets = bloodTypes.map(bloodType => ({
+                        label: `Golongan ${bloodType.type}`,
+                        data: getDataByBloodType(bloodType.type, selectedMonth),
+                        borderColor: bloodType.color,
+                        backgroundColor: bloodType.bgColor,
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        hidden: false
+                    }));
+                } else {
+                    const bloodType = bloodTypes.find(bt => bt.type === selectedBloodType);
+                    if (bloodType) {
+                        datasets = [{
+                            label: `Golongan ${bloodType.type}`,
+                            data: getDataByBloodType(bloodType.type, selectedMonth),
+                            borderColor: bloodType.color,
+                            backgroundColor: bloodType.bgColor,
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            hidden: false
+                        }];
+                    }
+                }
+
+                return datasets;
+            }
 
             // Initialize chart
             let chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: monthNames,
-                    datasets: datasets
+                    labels: getChartLabels(),
+                    datasets: prepareDatasets()
                 },
                 options: {
                     responsive: true,
@@ -305,31 +407,73 @@
                 }
             });
 
-            // Blood type filter change handler (now for showing/hiding specific blood types)
-            const bloodTypeSelect = document.querySelector('.blood-type-select');
-            if (bloodTypeSelect) {
-                bloodTypeSelect.addEventListener('change', (e) => {
-                    const selectedType = e.target.value;
+            // Function to update chart title
+            function updateChartTitle(selectedMonth, selectedBloodType) {
+                let title = 'Prediksi Kebutuhan Darah';
 
-                    if (selectedType === 'all') {
-                        // Show all blood types
-                        chart.data.datasets.forEach(dataset => {
-                            dataset.hidden = false;
-                        });
-                        chart.options.plugins.title.text =
-                            'Perbandingan Prediksi Kebutuhan Darah Semua Golongan';
-                    } else {
-                        // Show only selected blood type
-                        chart.data.datasets.forEach((dataset, index) => {
-                            dataset.hidden = bloodTypes[index].type !== selectedType;
-                        });
-                        chart.options.plugins.title.text =
-                            `Prediksi Kebutuhan Darah Golongan ${selectedType}`;
-                    }
+                if (selectedBloodType !== 'all') {
+                    title += ` Golongan ${selectedBloodType}`;
+                } else {
+                    title += ' Semua Golongan';
+                }
 
-                    chart.update();
-                });
+                if (selectedMonth !== 'all') {
+                    title += ` - ${fullMonthNames[parseInt(selectedMonth) - 1]}`;
+                }
+
+                chart.options.plugins.title.text = title;
             }
+
+            // Function to filter history table
+            function filterHistoryTable(selectedMonth) {
+                const tbody = document.querySelector('#historyTable tbody');
+                const rows = tbody.querySelectorAll('tr[data-month]');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const rowMonth = row.getAttribute('data-month');
+                    if (selectedMonth === 'all' || rowMonth === selectedMonth) {
+                        row.style.display = 'table-row';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Update summary info
+                const totalPeriodsSpan = document.getElementById('totalPeriods');
+                if (totalPeriodsSpan) {
+                    totalPeriodsSpan.textContent = visibleCount;
+                }
+            }
+
+            // Month filter event listener
+            const monthFilter = document.getElementById('monthFilter');
+            monthFilter.addEventListener('change', function() {
+                const selectedMonth = this.value;
+                const selectedBloodType = document.getElementById('bloodTypeFilter').value;
+
+                // Update chart
+                chart.data.labels = getChartLabels(selectedMonth);
+                chart.data.datasets = prepareDatasets(selectedMonth, selectedBloodType);
+                updateChartTitle(selectedMonth, selectedBloodType);
+                chart.update();
+
+                // Update table
+                filterHistoryTable(selectedMonth);
+            });
+
+            // Blood type filter event listener
+            const bloodTypeFilter = document.getElementById('bloodTypeFilter');
+            bloodTypeFilter.addEventListener('change', function() {
+                const selectedBloodType = this.value;
+                const selectedMonth = document.getElementById('monthFilter').value;
+
+                // Update chart
+                chart.data.datasets = prepareDatasets(selectedMonth, selectedBloodType);
+                updateChartTitle(selectedMonth, selectedBloodType);
+                chart.update();
+            });
 
             // Chart type switching
             const chartTypeSelect = document.querySelector('.chart-type-select');

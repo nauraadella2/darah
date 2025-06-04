@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\PermintaanDarah;
 use App\Models\Optimasi;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
 
 class OptimizationController extends Controller
 {
@@ -36,142 +37,89 @@ class OptimizationController extends Controller
             'tahun_selesai' => 'required|integer|gte:tahun_mulai'
         ]);
 
-        try {
-            // Ambil data training berdasarkan periode yang dipilih
-            $dataTraining = PermintaanDarah::whereBetween('tahun', [
-                $validated['tahun_mulai'], 
-                $validated['tahun_selesai']
-            ])
-            ->orderBy('tahun')
-            ->orderBy('bulan')
+        $dataTraining = PermintaanDarah::whereBetween('tahun', [
+            $validated['tahun_mulai'],
+            $validated['tahun_selesai']
+        ])
             ->get()
-            ->groupBy('golongan_darah');
+            ->map(function ($item) {
+                return [
+                    'id' => (int)$item->id, // <-- PASTIKAN INTEGER
+                    'tahun' => (int)$item->tahun, // <-- PASTIKAN INTEGER
+                    'bulan' => (int)$item->bulan, // <-- PASTIKAN INTEGER
+                    'golongan_darah' => $item->golongan_darah,
+                    'jumlah' => (int)$item->jumlah, // <-- PASTIKAN INTEGER
+                    'created_at' => $item->created_at->toDateTimeString(),
+                    'updated_at' => $item->updated_at->toDateTimeString()
+                ];
+            })
+            ->toArray();
 
-            if ($dataTraining->isEmpty()) {
-                return back()->with('error', 'Tidak ada data untuk periode yang dipilih');
-            }
+        try {
+            $response = Http::asJson()->post('http://localhost:5000/optimize', $dataTraining);
+            $result = $response->json();
 
-            $results = [];
-
-            foreach (['A', 'B', 'AB', 'O'] as $golongan) {
-                if (!isset($dataTraining[$golongan])) continue;
-
-                $values = $dataTraining[$golongan]->pluck('jumlah')->toArray();
-
-                if (count($values) < 24) {
-                    continue;
-                }
-
-                $optimized = $this->optimizeParameters($values);
-
-                $model = Optimasi::updateOrCreate(
-                    ['golongan_darah' => $golongan],
-                    [
-                        'user_id' => auth()->id(),
-                        'alpha' => $optimized['alpha'],
-                        'beta' => $optimized['beta'],
-                        'mape' => $optimized['mape'],
-                        'rmse' => $optimized['rmse'],
-                        'periode_mulai' => $validated['tahun_mulai'],
-                        'periode_selesai' => $validated['tahun_selesai']
-                    ]
+            if ($response->successful() && $result['status'] === 'success') {
+                $this->saveOptimizationResults(
+                    $result['optimization_details'],
+                    $validated['tahun_mulai'],
+                    $validated['tahun_selesai'],
+                    Auth::id()
                 );
-
-                $results[$golongan] = $model;
-            }
-
-            return redirect()->route('admin.optimasi')
-                ->with('success', 'Optimasi parameter berhasil!')
-                ->with('results', $results);
-
-        } catch (\Exception $e) {
-            Log::error('Error in hitungAlpha: '.$e->getMessage());
-            return back()->with('error', 'Terjadi kesalahan saat optimasi');
-        }
-    }
-
-    // ... (method optimizeParameters, holtPredictions, calculateMAPE, calculateRMSE tetap sama)
-
-
-    private function optimizeParameters(array $data): array
-    {
-        $splitPoint = (int)(count($data) * 0.8);
-        $training = array_slice($data, 0, $splitPoint);
-        $validation = array_slice($data, $splitPoint);
-
-        $bestAlpha = 0.3;
-        $bestBeta = 0.1;
-        $lowestMape = PHP_FLOAT_MAX;
-        $bestRmse = PHP_FLOAT_MAX;
-
-        // Grid search for best parameters
-        for ($alpha = 0.1; $alpha <= 0.9; $alpha += 0.1) {
-            for ($beta = 0.1; $beta <= 0.9; $beta += 0.1) {
-                $predictions = $this->holtPredictions($training, $alpha, $beta, count($validation));
-                $mape = $this->calculateMAPE($validation, $predictions);
-                $rmse = $this->calculateRMSE($validation, $predictions);
-
-                if ($mape < $lowestMape) {
-                    $lowestMape = $mape;
-                    $bestAlpha = $alpha;
-                    $bestBeta = $beta;
-                    $bestRmse = $rmse;
+                
+                foreach (['A', 'B', 'AB', 'O'] as $golongan) {
+                    $hasil[$golongan] = Optimasi::where('golongan_darah', $golongan)
+                        ->latest()
+                        ->first();
                 }
-            }
-        }
 
-        return [
-            'alpha' => round($bestAlpha, 2),
-            'beta' => round($bestBeta, 2),
-            'mape' => round($lowestMape, 2),
-            'rmse' => round($bestRmse, 2)
+                return $this->index();
+            }
+
+            return response()->json($result, $response->status());
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Connection failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    protected function saveOptimizationResults($optimizationDetails, $tahunMulai, $tahunSelesai, $userId)
+    {
+        // 1. Hapus data lama dengan periode yang sama
+        Optimasi::query()->delete();
+
+
+        // 2. Mapping golongan darah yang valid
+        $validGolongan = [
+            'Gol. A' => 'A',
+            'Gol. B' => 'B',
+            'Gol. AB' => 'AB',
+            'Gol. O' => 'O'
         ];
-    }
 
-    private function holtPredictions(array $data, float $alpha, float $beta, int $horizon): array
-    {
-        $level = $data[0];
-        $trend = $data[1] - $data[0];
-        $predictions = [];
+        // 3. Simpan hanya data dengan golongan darah valid
+        foreach ($optimizationDetails as $golKey => $detail) {
+            // Skip jika bukan golongan darah valid
+            if (!isset($validGolongan[$golKey])) continue;
 
-        // Training phase
-        for ($i = 1; $i < count($data); $i++) {
-            $newLevel = $alpha * $data[$i] + (1 - $alpha) * ($level + $trend);
-            $trend = $beta * ($newLevel - $level) + (1 - $beta) * $trend;
-            $level = $newLevel;
+            // Konversi MAPE dari string "15.15%" ke float 15.15
+            $mape = (float)str_replace('%', '', $detail['MAPE']);
+
+            Optimasi::create([
+                'user_id' => $userId,
+                'golongan_darah' => $validGolongan[$golKey],
+                'alpha' => (float)$detail['Alpha (Level)'],
+                'beta' => (float)$detail['Beta (Trend)'],
+                'gamma' => (float)$detail['Gamma (Seasonal)'],
+                'mape' => $mape,
+                'rmse' => 0,
+                'periode_mulai' => $tahunMulai,
+                'periode_selesai' => $tahunSelesai,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
         }
-
-        // Forecasting phase
-        for ($m = 1; $m <= $horizon; $m++) {
-            $predictions[] = $level + ($trend * $m);
-        }
-
-        return $predictions;
-    }
-
-    private function calculateMAPE(array $actual, array $predicted): float
-    {
-        $sum = 0;
-        $count = min(count($actual), count($predicted));
-        
-        for ($i = 0; $i < $count; $i++) {
-            if ($actual[$i] != 0) {
-                $sum += abs(($actual[$i] - $predicted[$i]) / $actual[$i]);
-            }
-        }
-        
-        return ($count > 0) ? ($sum / $count) * 100 : PHP_FLOAT_MAX;
-    }
-
-    private function calculateRMSE(array $actual, array $predicted): float
-    {
-        $sum = 0;
-        $count = min(count($actual), count($predicted));
-        
-        for ($i = 0; $i < $count; $i++) {
-            $sum += pow($actual[$i] - $predicted[$i], 2);
-        }
-        
-        return $count > 0 ? sqrt($sum / $count) : PHP_FLOAT_MAX;
     }
 }

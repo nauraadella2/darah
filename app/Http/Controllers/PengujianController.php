@@ -11,22 +11,78 @@ class PengujianController extends Controller
 {
     public function index()
     {
+        // Ambil tahun terakhir dari data permintaan
+        $tahunTerakhir = PermintaanDarah::max('tahun');
 
-        $pengujian = PermintaanDarah::where('tahun', 2024)->get();
-        // $prediksi = PrediksiDarah::where('tahun', 2024)->get();
-        // $prediksiKeren = PrediksiDarah::orderBy('tahun', 'desc')->first();
-        $tahunPrediksi = PrediksiDarah::all()->groupBy('tahun');
-        // Ambil tahun terakhir dulu
-        $tahunTerakhir = PrediksiDarah::max('tahun');
+        // Ambil data aktual tahun terakhir
+        $aktual = PermintaanDarah::where('tahun', $tahunTerakhir)
+            ->orderBy('bulan')
+            ->orderBy('golongan_darah')
+            ->get();
 
-        // Kemudian ambil semua data dengan tahun tersebut
-        $prediksi = PrediksiDarah::where('tahun', $tahunTerakhir)->get();
-        // dd($prediksiKeren);
-        return view('admin.pengujian', [
-            'aktual' => $pengujian,
-            'prediksi' => $prediksi,
-            'selects' => $tahunPrediksi
-        ]);
+        // Ambil data prediksi untuk tahun berikutnya (asumsi prediksi untuk tahun berikutnya)
+        $prediksi = PrediksiDarah::where('tahun', $tahunTerakhir + 1)
+            ->orderBy('bulan')
+            ->orderBy('golongan_darah')
+            ->get();
+
+        // Gabungkan data dan hitung statistik
+        $hasilPengujian = [];
+        $errors = [];
+        $bestPrediction = ['error' => 100, 'golongan' => ''];
+        $worstPrediction = ['error' => 0, 'golongan' => ''];
+
+        foreach ($aktual as $dataAktual) {
+            $dataPrediksi = $prediksi->where('bulan', $dataAktual->bulan)
+                ->where('golongan_darah', $dataAktual->golongan_darah)
+                ->first();
+
+            if ($dataPrediksi) {
+                $selisih = $dataPrediksi->jumlah - $dataAktual->jumlah;
+                $error = ($selisih / $dataAktual->jumlah) * 100;
+                $roundedError = round($error, 2);
+
+                $hasilPengujian[] = [
+                    'bulan' => $dataAktual->bulan,
+                    'golongan' => $dataAktual->golongan_darah,
+                    'permintaan_aktual' => $dataAktual->jumlah,
+                    'hasil_prediksi' => $dataPrediksi->jumlah,
+                    'selisih' => $selisih,
+                    'error' => $roundedError
+                ];
+
+                // Kumpulkan error untuk rata-rata
+                $errors[] = abs($roundedError);
+
+                // Update prediksi terbaik dan terburuk
+                if (abs($roundedError) < abs($bestPrediction['error'])) {
+                    $bestPrediction = [
+                        'error' => $roundedError,
+                        'golongan' => $dataAktual->golongan_darah,
+                        'bulan' => $dataAktual->bulan
+                    ];
+                }
+
+                if (abs($roundedError) > abs($worstPrediction['error'])) {
+                    $worstPrediction = [
+                        'error' => $roundedError,
+                        'golongan' => $dataAktual->golongan_darah,
+                        'bulan' => $dataAktual->bulan
+                    ];
+                }
+            }
+        }
+
+        // Hitung rata-rata error
+        $averageError = count($errors) > 0 ? round(array_sum($errors) / count($errors), 2) : 0;
+
+        return view('admin.pengujian', compact(
+            'hasilPengujian',
+            'tahunTerakhir',
+            'averageError',
+            'bestPrediction',
+            'worstPrediction'
+        ));
     }
 
     public function filter(Request $request)
@@ -42,10 +98,6 @@ class PengujianController extends Controller
         }
         // $pengujian = PermintaanDarah::where('tahun', 2024)->get();
 
-        return view('admin.keren', [
-            'aktual' => $pengujian,
-            'prediksi' => $prediksi,
-        ]);
     }
     public function proses(Request $request)
     {
@@ -96,5 +148,52 @@ class PengujianController extends Controller
 
         return redirect()->route('pengujian.index', ['tahun' => $tahun])
             ->with('success', 'Pengujian berhasil dilakukan!');
+    }
+    // Add this method to your PengujianController
+    public function store(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $tahunTerakhir = PermintaanDarah::max('tahun');
+
+            $savedData = [];
+            foreach ($request->data as $data) {
+                $saved = Pengujian::create([
+                    'user_id' => $user->id,
+                    'golongan_darah' => $data['golongan'],
+                    'mape' => abs($data['error']),
+                    'hasil_perbulan' => json_encode([
+                        'bulan' => $data['bulan'],
+                        'permintaan_aktual' => $data['permintaan_aktual'],
+                        'hasil_prediksi' => $data['hasil_prediksi'],
+                        'selisih' => $data['selisih'],
+                        'error' => $data['error']
+                    ]),
+                    'permintaan_aktual' => $data['permintaan_aktual'],
+                    'hasil_prediksi' => $data['hasil_prediksi'],
+                    'selisih' => $data['selisih'],
+                    'error' => $data['error']
+                ]);
+                $savedData[] = $saved;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data pengujian berhasil disimpan',
+                'data' => $savedData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

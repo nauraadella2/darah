@@ -7,160 +7,211 @@ use App\Models\PermintaanDarah;
 use App\Models\PrediksiDarah;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
+use DateTime;
 
 class PredictionController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
         $lastTrainingYear = Optimasi::max('periode_selesai') ?? date('Y') - 1;
         $tahunPrediksiTersedia = range($lastTrainingYear + 1, date('Y') + 1);
+        // Base query for predictions
+        $query = PrediksiDarah::query();
 
-        // Query dasar untuk prediksi
-        $query = PrediksiDarah::prediksi()
-            ->select(
-                'tahun',
-                'bulan',
-                DB::raw('SUM(CASE WHEN golongan_darah = "A" THEN jumlah ELSE 0 END) as gol_a'),
-                DB::raw('SUM(CASE WHEN golongan_darah = "B" THEN jumlah ELSE 0 END) as gol_b'),
-                DB::raw('SUM(CASE WHEN golongan_darah = "AB" THEN jumlah ELSE 0 END) as gol_ab'),
-                DB::raw('SUM(CASE WHEN golongan_darah = "O" THEN jumlah ELSE 0 END) as gol_o')
-            )
-            ->groupBy('tahun', 'bulan')
-            ->orderBy('tahun', 'desc')
-            ->orderBy('bulan', 'asc');
+        // Get predictions and group by year and month
+        $prediksiData = $query->orderBy('tahun', 'desc')
+            ->orderBy('bulan', 'desc')
+            ->get();
 
-        // Filter tahun dan bulan
-        if ($request->tahun) {
-            $query->where('tahun', $request->tahun);
-        }
+        $year = Optimasi::select('periode_selesai')->first(); // Ambil 1 data saja langsung
+        $periodeSelesai = (int) $year->periode_selesai; // Ubah ke integer
+        $tahunBerikutnya = $periodeSelesai + 1;
 
-        if ($request->bulan) {
-            $query->where('bulan', $request->bulan);
-        }
+        // Group predictions by year and month, then format for display
+        $predictions = $prediksiData->groupBy(['tahun', 'bulan'])
+            ->map(function ($yearGroup) {
+                return $yearGroup->map(function ($monthGroup) {
+                    // Initialize default values
+                    $grouped = [
+                        'tahun' => $monthGroup->first()->tahun,
+                        'bulan' => $monthGroup->first()->bulan,
+                        'gol_a' => 0,
+                        'gol_b' => 0,
+                        'gol_ab' => 0,
+                        'gol_o' => 0,
+                        'created_at' => $monthGroup->first()->created_at
+                    ];
 
-        // Ambil semua data tanpa pagination
-        $predictions = $query->get();
+                    // Sum up values for each blood type
+                    foreach ($monthGroup as $prediction) {
+                        switch ($prediction->golongan_darah) {
+                            case 'A':
+                                $grouped['gol_a'] = $prediction->jumlah;
+                                break;
+                            case 'B':
+                                $grouped['gol_b'] = $prediction->jumlah;
+                                break;
+                            case 'AB':
+                                $grouped['gol_ab'] = $prediction->jumlah;
+                                break;
+                            case 'O':
+                                $grouped['gol_o'] = $prediction->jumlah;
+                                break;
+                        }
+                    }
 
-        // Data untuk chart
-        $chartData = PrediksiDarah::prediksi()
-            ->select('tahun', 'bulan', 'golongan_darah', DB::raw('SUM(jumlah) as total'))
-            ->groupBy('tahun', 'bulan', 'golongan_darah')
-            ->orderBy('tahun')
-            ->orderBy('bulan')
-            ->get()
-            ->groupBy('golongan_darah');
+                    return (object) $grouped;
+                });
+            })
+            ->flatten()
+            ->sortBy(function ($item) {
+                return $item->tahun * 100 + $item->bulan; // Sort by year and month ascending
+            });
+
         $prediksi = PrediksiDarah::all();
-        // dd($prediksi);
+
+        // Get available months from prediction data
+        $availableMonths = $prediksiData->pluck('bulan')->unique()->sort()->values();
+
         return view('admin.prediksi', [
-            'tahunPrediksiTersedia' => $tahunPrediksiTersedia,
+            'tahunBerikutnya' => $tahunBerikutnya,
             'lastTrainingYear' => $lastTrainingYear,
             'predictions' => $predictions,
-            'chartData' => $chartData,
             'prediksi' => $prediksi,
-            'request' => $request
-
+            'availableMonths' => $availableMonths
         ]);
     }
 
     public function hitungPrediksi(Request $request)
     {
-        $request->validate([
-            'tahun' => 'required|integer|min:' . (Optimasi::max('periode_selesai') + 1) . '|max:' . (date('Y') + 2),
+        $validate = $request->validate([
+            'periods' => 'required|integer|min:1|max:12',
             'alpha' => 'nullable|numeric|between:0.1,0.9',
             'beta' => 'nullable|numeric|between:0.1,0.9',
-            'golongan' => 'nullable|in:A,B,AB,O'
+            'gamma' => 'nullable|numeric|between:0.1,0.9',
         ]);
 
         try {
-            DB::beginTransaction();
+            // Get optimization parameters from database
+            $optimasi = Optimasi::all()->keyBy('golongan_darah');
 
-            $results = [];
-            $golonganDarah = $request->golongan
-                ? [$request->golongan]
-                : ['A', 'B', 'AB', 'O'];
+            // Prepare parameters for each blood type
+            $bloodTypes = ['A', 'B', 'AB', 'O'];
+            $optimizeParams = [];
 
-            foreach ($golonganDarah as $golongan) {
-                $optimasi = Optimasi::where('golongan_darah', $golongan)
-                    ->latest()
-                    ->firstOrFail();
-
-                $alpha = $request->alpha ?? $optimasi->alpha;
-                $beta = $request->beta ?? $optimasi->beta;
-
-                $historicalData = PermintaanDarah::where('golongan_darah', $golongan)
-                    ->whereBetween('tahun', [$optimasi->periode_mulai, $optimasi->periode_selesai])
-                    ->orderBy('tahun')
-                    ->orderBy('bulan')
-                    ->pluck('jumlah')
-                    ->toArray();
-
-                if (count($historicalData) < 2) {
-                    throw new \Exception("Data training tidak cukup untuk golongan $golongan");
-                }
-
-                $forecasts = $this->generateForecasts($historicalData, $alpha, $beta, $request->tahun);
-
-                // Simpan prediksi
-                foreach ($forecasts as $month => $forecast) {
-                    PrediksiDarah::updateOrCreate(
-                        [
-                            'golongan_darah' => $golongan,
-                            'tahun' => $request->tahun,
-                            'bulan' => $month,
-                            'is_aktual' => false
-                        ],
-                        [
-                            'jumlah' => $forecast['forecast'],
-                            'alpha' => $alpha,
-                            'beta' => $beta,
-                            'optimasi_id' => $optimasi->id,
-                            'user_id' => auth()->id()
-                        ]
-                    );
-                }
-
-                $results[$golongan] = [
-                    'alpha' => $alpha,
-                    'beta' => $beta,
-                    'forecasts' => $forecasts
+            foreach ($bloodTypes as $type) {
+                $optimizeParams[$type] = [
+                    'Alpha' => (float)($validate["alpha"]
+                        ?? $optimasi[$type]->alpha
+                        ?? 0.3),
+                    'Beta' => (float)($validate["beta"]
+                        ?? $optimasi[$type]->beta
+                        ?? 0.1),
+                    'Gamma' => (float)($validate["gamma"]
+                        ?? $optimasi[$type]->gamma
+                        ?? 0.1)
                 ];
             }
 
-            DB::commit();
+            // Get historical data (example query - adjust as needed)
+            $historicalData = PermintaanDarah::select(['tahun', 'bulan', 'golongan_darah', 'jumlah'])
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'tahun' => (int)$item->tahun,
+                        'bulan' => (int)$item->bulan,
+                        'golongan_darah' => $item->golongan_darah,
+                        'jumlah' => (int)$item->jumlah
+                    ];
+                })
+                ->toArray();
+            $periods = (int)$request->input('periods', 6);
 
-            return redirect()->route('admin.prediksi.index')
-                ->with('success', 'Prediksi berhasil dibuat')
-                ->with('results', [
-                    'year' => $request->tahun,
-                    'forecasts' => $results,
-                    'custom_params' => $request->alpha || $request->beta
-                ]);
+            // Prepare payload for Python API
+            $payload = [
+                'optimize' => $optimizeParams,
+                'data' => $historicalData
+            ];
+
+            // Call Python API
+            $response = Http::post('http://localhost:5000/predict-with-params?periods=' . $periods, $payload);
+
+            if ($response->successful()) {
+                $result = $response->json();
+
+                // Start database transaction
+                DB::beginTransaction();
+
+                try {
+                    // Save predictions to database
+                    $this->savePredictionsToDatabase($result, $optimizeParams, $request->user()->id ?? null);
+
+                    DB::commit();
+
+                    // Return JSON response with predictions
+                    // return response()->json([
+                    //     'status' => 'success',
+                    //     'message' => 'Prediksi berhasil dibuat dan disimpan',
+                    //     'data' => [
+                    //         'parameters_used' => $optimizeParams,
+                    //         'predictions' => $result['predictions']
+                    //     ]
+                    // ], 200);
+                    return $this->index();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    throw $e;
+                }
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal mendapatkan prediksi dari server',
+                    'error_details' => $response->body()
+                ], 500);
+            }
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal membuat prediksi: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat memproses prediksi',
+                'error_details' => $e->getMessage()
+            ], 500);
         }
     }
 
-    private function generateForecasts($data, $alpha, $beta, $tahun)
+    /**
+     * Save predictions to database
+     */
+    private function savePredictionsToDatabase($result, $optimizeParams, $userId = null)
     {
-        $level = $data[0];
-        $trend = $data[1] - $data[0];
+        PrediksiDarah::query()->delete();
+        $predictions = $result['predictions'];
+        $bloodTypes = ['A', 'B', 'AB', 'O'];
 
-        for ($i = 1; $i < count($data); $i++) {
-            $newLevel = $alpha * $data[$i] + (1 - $alpha) * ($level + $trend);
-            $trend = $beta * ($newLevel - $level) + (1 - $beta) * $trend;
-            $level = $newLevel;
+        // Loop through each prediction date
+        foreach ($predictions['by_date'] as $prediction) {
+            // dd($prediction);
+            $date = new DateTime($prediction['date']);
+            $tahun = (int)$date->format('Y');
+            $bulan = (int)$date->format('n');
+
+            // Save prediction for each blood type
+            foreach ($bloodTypes as $bloodType) {
+                if (isset($prediction[$bloodType])) {
+                    PrediksiDarah::create([
+                        'golongan_darah' => $bloodType,
+                        'tahun' => 2222,
+                        'bulan' => $bulan,
+                        'jumlah' => $prediction[$bloodType],
+                        'is_aktual' => false, // This is prediction, not actual data
+                        'alpha' => $optimizeParams[$bloodType]['Alpha'],
+                        'beta' => $optimizeParams[$bloodType]['Beta'],
+                        'gamma' => $optimizeParams[$bloodType]['Gamma'],
+                        'user_id' => $userId
+                    ]);
+                }
+            }
         }
-
-        $forecasts = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $forecast = $level + ($trend * $m);
-            $forecasts[$m] = [
-                'period' => date('F Y', mktime(0, 0, 0, $m, 1, $tahun)),
-                'forecast' => $forecast > 0 ? round($forecast, 2) : 0
-            ];
-        }
-
-        return $forecasts;
     }
 }

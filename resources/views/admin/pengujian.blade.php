@@ -1,19 +1,21 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="testing-container">
-        <div class="testing-header">
-            <h1><i class="fas fa-flask"></i> Pengujian Akurasi Prediksi</h1>
-            <p class="subtitle">Evaluasi performa model prediksi permintaan darah</p>
+    <div class="container">
+        <div class="prediction-header">
+            <h2><i class="bx bx-test-tube"></i> Pengujian Prediksi vs Aktual</h2>
+            <div class="header-info">
+                <span class="training-data">Membandingkan tahun {{ $tahunTerakhir }} (aktual) dengan {{ $tahunTerakhir + 1 }}
+                    (prediksi)</span>
+            </div>
         </div>
 
         <!-- Filter Section -->
-        <form method="GET" action="{{ route('admin.pengujian.filter') }}">
-            <div class="testing-filter">
-                <div class="filter-card">
+        <div class="filter-card">
+            <div class="card-body">
+                <div class="filter-controls">
                     <div class="filter-group">
-                        <label>Golongan Darah</label>
-                        <select name="golongan_darah" class="blood-type-select">
+                        <select id="bloodTypeFilter">
                             <option value="all">Semua Golongan</option>
                             <option value="A">Golongan A</option>
                             <option value="B">Golongan B</option>
@@ -21,67 +23,44 @@
                             <option value="O">Golongan O</option>
                         </select>
                     </div>
-
-                    <div class="filter-group">
-                        <label>Tahun</label>
-                        <select name="tahun" class="year-select">
-                            @foreach ($selects->keys() as $tahun)
-                                <option value="{{ $tahun }}">{{ $tahun }}</option>
-                            @endforeach
-                        </select>
+                    <div class="filter-actions">
+                        <button id="resetFilter" class="btn-secondary">
+                            <i class="bx bx-refresh"></i> Reset Filter
+                        </button>
+                        <button id="exportData" class="btn-primary">
+                            Simpan Data
+                        </button>
                     </div>
-
-                    <button type="submit" class="test-button">
-                        <i class="fas fa-play"></i> Jalankan Pengujian
-                    </button>
-                </div>
-            </div>
-        </form>
-
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card">
-                <div class="card-icon bg-red-100">
-                    <i class="fas fa-percentage text-red-600"></i>
-                </div>
-                <div class="card-content">
-                    <span class="card-label">Rata-rata MAPE</span>
-                    <span class="card-value">5.2%</span>
-                </div>
-            </div>
-
-            <div class="summary-card">
-                <div class="card-icon bg-green-100">
-                    <i class="fas fa-check-circle text-green-600"></i>
-                </div>
-                <div class="card-content">
-                    <span class="card-label">Tingkat Akurasi</span>
-                    <span class="card-value">94.8%</span>
-                </div>
-            </div>
-
-            <div class="summary-card">
-                <div class="card-icon bg-blue-100">
-                    <i class="fas fa-vial text-blue-600"></i>
-                </div>
-                <div class="card-content">
-                    <span class="card-label">Total Pengujian</span>
-                    <span class="card-value">24</span>
                 </div>
             </div>
         </div>
 
-        <!-- Results Section -->
-        <div class="results-section">
-            <div class="results-tabs">
-                <button class="tab-button active" data-tab="table"><i class="fas fa-table"></i> Tabel Data</button>
-                <button class="tab-button" data-tab="chart"><i class="fas fa-chart-line"></i> Visualisasi</button>
-                <button class="tab-button" data-tab="analysis"><i class="fas fa-chart-pie"></i> Analisis</button>
+        <!-- Grafik Perbandingan -->
+        <div class="chart-card">
+            <div class="card-header">
+                <h3><i class="bx bx-line-chart"></i> Grafik Perbandingan</h3>
+                <div class="chart-controls">
+                    <button id="toggleChartType" class="btn-outline">
+                        <i class="bx bx-bar-chart"></i> Bar Chart
+                    </button>
+                </div>
             </div>
+            <div class="card-body">
+                <canvas id="comparisonChart" height="40" width="100"></canvas>
+            </div>
+        </div>
 
-            <div class="tab-content active" id="table-tab">
+        <!-- Tabel Perbandingan -->
+        <div class="table-card">
+            <div class="card-header">
+                <h3><i class="bx bx-table"></i> Tabel Perbandingan</h3>
+                <div class="table-controls">
+                    <span class="table-info" id="tableInfo">Total: {{ count($hasilPengujian) }} data</span>
+                </div>
+            </div>
+            <div class="card-body">
                 <div class="table-container">
-                    <table class="results-table">
+                    <table id="comparisonTable">
                         <thead>
                             <tr>
                                 <th>Bulan</th>
@@ -93,396 +72,774 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($aktual as $dataAktual)
-                                @php
-
-                                    // Cari data prediksi yang sesuai: bulan dan golongan_darah harus sama
-                                    $prediksiItem = $prediksi->first(function ($item) use ($dataAktual) {
-                                        return $item->bulan == $dataAktual->bulan &&
-                                            $item->golongan_darah == $dataAktual->golongan_darah;
-                                    });
-
-                                    // Hitung selisih dan error jika ada data prediksi
-                                    $selisih = $prediksiItem ? $dataAktual->jumlah - $prediksiItem->jumlah : 0;
-                                    $error =
-                                        $prediksiItem && $dataAktual->jumlah > 0
-                                            ? round((abs($selisih) / $dataAktual->jumlah) * 100, 2)
-                                            : 0;
-                                @endphp
-                                <tr>
-                                    <td>{{ \Carbon\Carbon::create()->month($dataAktual->bulan)->locale('id')->isoFormat('MMMM') }}
-                                        {{ $dataAktual->tahun }}</td>
-                                    <td><span
-                                            class="blood-badge bg-red-100 text-red-800">{{ $dataAktual->golongan_darah }}</span>
-                                    </td>
-                                    <td>{{ $dataAktual->jumlah }}</td>
-                                    <td>{{ $prediksiItem ? $prediksiItem->jumlah : '-' }}</td>
-                                    <td>{{ $prediksiItem ? $selisih : '-' }}</td>
+                            @foreach ($hasilPengujian as $data)
+                                <tr data-blood-type="{{ $data['golongan'] }}">
+                                    <td>{{ $data['bulan'] }}</td>
                                     <td>
-                                        @if ($prediksiItem)
-                                            <span class="error-badge">{{ $error }}%</span>
-                                        @else
-                                            -
-                                        @endif
+                                        <span class="blood-type-badge blood-type-{{ strtolower($data['golongan']) }}">
+                                            {{ $data['golongan'] }}
+                                        </span>
+                                    </td>
+                                    <td>{{ $data['permintaan_aktual'] }}</td>
+                                    <td>{{ $data['hasil_prediksi'] }}</td>
+                                    <td class="{{ $data['selisih'] >= 0 ? 'positive' : 'negative' }}">
+                                        {{ $data['selisih'] }}
+                                    </td>
+                                    <td class="{{ abs($data['error']) > 20 ? 'error-high' : 'error-low' }}">
+                                        {{ $data['error'] }}%
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
-
                     </table>
                 </div>
             </div>
+        </div>
 
-            <div class="tab-content" id="chart-tab">
-                <div class="chart-container">
-                    <div class="chart-controls">
-                        <select class="chart-type-select">
-                            <option value="line">Line Chart</option>
-                            <option value="bar">Bar Chart</option>
-                            <option value="combo">Kombinasi</option>
-                        </select>
-
-                        <div class="chart-legend">
-                            <span class="legend-item"><i class="fas fa-square" style="color: #e53e3e"></i> Aktual</span>
-                            <span class="legend-item"><i class="fas fa-square" style="color: #3182ce"></i> Prediksi</span>
-                        </div>
-                    </div>
-                    <canvas id="resultsChart" height="40" width="100"></canvas>
-                </div>
+        <!-- Summary -->
+        <div class="summary-card">
+            <div class="card-header">
+                <h3><i class="bx bx-stats"></i> Ringkasan Pengujian</h3>
             </div>
-            <div class="tab-content" id="analysis-tab">
-                <div class="analysis-grid">
-                    @php
-                        $totalA = $aktual->where('golongan_darah', 'A')->sum('jumlah');
-                        $totalB = $aktual->where('golongan_darah', 'B')->sum('jumlah');
-                        $totalAB = $aktual->where('golongan_darah', 'AB')->sum('jumlah');
-                        $totalO = $aktual->where('golongan_darah', 'O')->sum('jumlah');
-                        $grandTotal = $totalA + $totalB + $totalAB + $totalO;
-                        $mapeA = round(($totalA / $grandTotal) * 100);
-                        $mapeB = round(($totalB / $grandTotal) * 100);
-                        $mapeAB = round(($totalAB / $grandTotal) * 100);
-                        $mapeO = round(($totalO / $grandTotal) * 100);
-                    @endphp
-                    <div class="analysis-card">
-                        <h3><i class="fas fa-tint" style="color: #ef4444;"></i> Golongan A</h3>
-                        <div class="mb-2">
-                            <p>Permintaan: {{ round(($totalA / $grandTotal) * 100) }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill bg-red-500"
-                                    style="width: {{ round(($totalA / $grandTotal) * 100) }}%"></div>
-                            </div>
-                            <span class="blood-value">{{ $totalA }} kantong</span>
-                        </div>
-
-                        <div class="mt-3">
-                            <p>Akurasi: {{ $mapeA }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill 
-                    {{ $mapeA < 10
-                        ? 'bg-green-500'
-                        : ($mapeA < 20
-                            ? 'bg-yellow-500'
-                            : ($mapeA < 50
-                                ? 'bg-orange-500'
-                                : 'bg-red-500')) }}"
-                                    style="width: {{ min($mapeA, 100) }}%">
-                                </div>
-                            </div>
-                            <span
-                                class="text-sm {{ $mapeA < 10
-                                    ? 'text-green-500'
-                                    : ($mapeA < 20
-                                        ? 'text-yellow-500'
-                                        : ($mapeA < 50
-                                            ? 'text-orange-500'
-                                            : 'text-red-500')) }}">
-                                {{ $mapeA < 10 ? 'Sangat Akurat' : ($mapeA < 20 ? 'Akurat' : ($mapeA < 50 ? 'Cukup' : 'Tidak Akurat')) }}
-                            </span>
-                        </div>
+            <div class="card-body">
+                <div class="summary-stats" id="summaryStats">
+                    <div class="stat-item">
+                        <span class="stat-label">Rata-rata Error</span>
+                        <span class="stat-value" id="avgError">{{ number_format($averageError, 2) }}%</span>
                     </div>
-
-                    <!-- Golongan B -->
-                    <div class="analysis-card">
-                        <h3><i class="fas fa-tint" style="color: #3b82f6;"></i> Golongan B</h3>
-                        <div class="mb-2">
-                            <p>Permintaan: {{ round(($totalB / $grandTotal) * 100) }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill bg-blue-500"
-                                    style="width: {{ round(($totalB / $grandTotal) * 100) }}%"></div>
-                            </div>
-                            <span class="blood-value">{{ $totalB }} kantong</span>
-                        </div>
-
-                        <div class="mt-3">
-                            <p>Akurasi: {{ $mapeB }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill 
-                    {{ $mapeB < 10
-                        ? 'bg-green-500'
-                        : ($mapeB < 20
-                            ? 'bg-yellow-500'
-                            : ($mapeB < 50
-                                ? 'bg-orange-500'
-                                : 'bg-red-500')) }}"
-                                    style="width: {{ min($mapeB, 100) }}%">
-                                </div>
-                            </div>
-                            <span
-                                class="text-sm {{ $mapeB < 10
-                                    ? 'text-green-500'
-                                    : ($mapeB < 20
-                                        ? 'text-yellow-500'
-                                        : ($mapeB < 50
-                                            ? 'text-orange-500'
-                                            : 'text-red-500')) }}">
-                                {{ $mapeB < 10 ? 'Sangat Akurat' : ($mapeB < 20 ? 'Akurat' : ($mapeB < 50 ? 'Cukup' : 'Tidak Akurat')) }}
-                            </span>
-                        </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Prediksi Terbaik</span>
+                        <span class="stat-value" id="bestPred">{{ $bestPrediction['golongan'] }}
+                            ({{ $bestPrediction['error'] }}%)</span>
                     </div>
-
-                    <!-- Golongan AB -->
-                    <div class="analysis-card">
-                        <h3><i class="fas fa-tint" style="color: #a855f7;"></i> Golongan AB</h3>
-                        <div class="mb-2">
-                            <p>Permintaan: {{ round(($totalAB / $grandTotal) * 100) }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill bg-purple-500"
-                                    style="width: {{ round(($totalAB / $grandTotal) * 100) }}%"></div>
-                            </div>
-                            <span class="blood-value">{{ $totalAB }} kantong</span>
-                        </div>
-
-                        <div class="mt-3">
-                            <p>Akurasi: {{ $mapeAB }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill 
-                    {{ $mapeAB < 10
-                        ? 'bg-green-500'
-                        : ($mapeAB < 20
-                            ? 'bg-yellow-500'
-                            : ($mapeAB < 50
-                                ? 'bg-orange-500'
-                                : 'bg-red-500')) }}"
-                                    style="width: {{ min($mapeAB, 100) }}%">
-                                </div>
-                            </div>
-                            <span
-                                class="text-sm {{ $mapeAB < 10
-                                    ? 'text-green-500'
-                                    : ($mapeAB < 20
-                                        ? 'text-yellow-500'
-                                        : ($mapeAB < 50
-                                            ? 'text-orange-500'
-                                            : 'text-red-500')) }}">
-                                {{ $mapeAB < 10 ? 'Sangat Akurat' : ($mapeAB < 20 ? 'Akurat' : ($mapeAB < 50 ? 'Cukup' : 'Tidak Akurat')) }}
-                            </span>
-                        </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Prediksi Terburuk</span>
+                        <span class="stat-value" id="worstPred">{{ $worstPrediction['golongan'] }}
+                            ({{ $worstPrediction['error'] }}%)</span>
                     </div>
-
-                    <!-- Golongan O -->
-                    <div class="analysis-card">
-                        <h3><i class="fas fa-tint" style="color: #f97316;"></i> Golongan O</h3>
-                        <div class="mb-2">
-                            <p>Permintaan: {{ round(($totalO / $grandTotal) * 100) }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill bg-orange-500"
-                                    style="width: {{ round(($totalO / $grandTotal) * 100) }}%"></div>
-                            </div>
-                            <span class="blood-value">{{ $totalO }} kantong</span>
-                        </div>
-
-                        <div class="mt-3">
-                            <p>Akurasi: {{ $mapeO }}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill 
-                    {{ $mapeO < 10
-                        ? 'bg-green-500'
-                        : ($mapeO < 20
-                            ? 'bg-yellow-500'
-                            : ($mapeO < 50
-                                ? 'bg-orange-500'
-                                : 'bg-red-500')) }}"
-                                    style="width: {{ min($mapeO, 100) }}%">
-                                </div>
-                            </div>
-                            <span
-                                class="text-sm {{ $mapeO < 10
-                                    ? 'text-green-500'
-                                    : ($mapeO < 20
-                                        ? 'text-yellow-500'
-                                        : ($mapeO < 50
-                                            ? 'text-orange-500'
-                                            : 'text-red-500')) }}">
-                                {{ $mapeO < 10 ? 'Sangat Akurat' : ($mapeO < 20 ? 'Akurat' : ($mapeO < 50 ? 'Cukup' : 'Tidak Akurat')) }}
-                            </span>
-                        </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Data Ditampilkan</span>
+                        <span class="stat-value" id="dataCount">{{ count($hasilPengujian) }}</span>
                     </div>
                 </div>
             </div>
         </div>
+        <style>
+            /* Tema Merah Utama */
+            :root {
+                --primary-color: #dc2626;
+                --primary-light: #fee2e2;
+                --primary-dark: #7f1d1d;
+                --secondary-color: #b91c1c;
+                --accent-color: #ef4444;
+                --text-color: #333;
+                --light-bg: #fff5f5;
+                --success-color: #166534;
+                --error-color: #b91c1c;
+                --warning-color: #d97706;
+                --info-color: #2563eb;
+            }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: var(--text-color);
+                background-color: var(--light-bg);
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            /* Header */
+            .prediction-header {
+                margin-bottom: 30px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid var(--primary-color);
+            }
+
+            .prediction-header h2 {
+                color: var(--primary-dark);
+                margin-bottom: 5px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .header-info {
+                color: #666;
+                font-size: 0.9rem;
+            }
+
+            /* Cards */
+            .chart-card,
+            .table-card,
+            .summary-card,
+            .filter-card {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                margin-bottom: 25px;
+                overflow: hidden;
+            }
+
+            .card-header {
+                background-color: var(--primary-color);
+                color: white;
+                padding: 15px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+            }
+
+            .card-header h3 {
+                margin: 0;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+
+            /* Filter Styles */
+            .filter-controls {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 20px;
+                margin-bottom: 15px;
+            }
+
+            .filter-group {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .filter-group label {
+                font-weight: 600;
+                color: var(--text-color);
+                white-space: nowrap;
+            }
+
+            .filter-group select {
+                padding: 8px 12px;
+                border: 2px solid var(--primary-light);
+                border-radius: 6px;
+                font-size: 0.9rem;
+                background: white;
+                color: var(--text-color);
+                min-width: 150px;
+                transition: all 0.2s ease;
+            }
+
+            .filter-group select:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+            }
+
+            .filter-actions {
+                display: flex;
+                gap: 10px;
+                margin-left: auto;
+            }
+
+            .btn-primary,
+            .btn-secondary,
+            .btn-outline {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 6px;
+                font-size: 0.9rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                text-decoration: none;
+            }
+
+            .btn-primary {
+                background-color: var(--primary-color);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                background-color: var(--primary-dark);
+                transform: translateY(-1px);
+            }
+
+            .btn-secondary {
+                background-color: #6b7280;
+                color: white;
+            }
+
+            .btn-secondary:hover {
+                background-color: #4b5563;
+                transform: translateY(-1px);
+            }
+
+            .btn-outline {
+                background-color: transparent;
+                color: white;
+                border: 2px solid white;
+            }
+
+            .btn-outline:hover {
+                background-color: white;
+                color: var(--primary-color);
+            }
+
+            .filter-summary {
+                padding: 10px 15px;
+                background-color: var(--primary-light);
+                border-radius: 6px;
+                font-size: 0.9rem;
+            }
+
+            /* Chart Controls */
+            .chart-controls {
+                display: flex;
+                gap: 10px;
+            }
+
+            /* Table Controls */
+            .table-controls {
+                display: flex;
+                align-items: center;
+            }
+
+            .table-info {
+                color: white;
+                font-size: 0.9rem;
+            }
+
+            /* Blood Type Badges */
+            .blood-type-badge {
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                font-weight: bold;
+                color: white;
+            }
+
+            .blood-type-a {
+                background-color: var(--primary-color);
+            }
+
+            .blood-type-b {
+                background-color: var(--info-color);
+            }
+
+            .blood-type-ab {
+                background-color: var(--success-color);
+            }
+
+            .blood-type-o {
+                background-color: var(--warning-color);
+            }
+
+            /* Enhanced Table Styles */
+            .table-container {
+                overflow-x: auto;
+            }
+
+            #comparisonTable {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            #comparisonTable thead {
+                background-color: var(--primary-color);
+                color: white;
+            }
+
+            #comparisonTable th {
+                padding: 15px;
+                text-align: center;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                border: none;
+                color: white;
+                background-color: var(--primary-color);
+            }
+
+            #comparisonTable td {
+                padding: 12px 15px;
+                text-align: center;
+                border-bottom: 1px solid #f0f0f0;
+                transition: all 0.2s ease;
+            }
+
+            #comparisonTable tr:not(:last-child) td {
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            #comparisonTable tr:nth-child(even) {
+                background-color: #fafafa;
+            }
+
+            #comparisonTable tr:hover td {
+                background-color: var(--primary-light);
+                transform: translateX(2px);
+            }
+
+            #comparisonTable tr.hidden {
+                display: none;
+            }
+
+            /* Enhanced Error Styles */
+            .error-high {
+                background-color: rgba(220, 38, 38, 0.1);
+                font-weight: bold;
+                position: relative;
+            }
+
+            .error-high::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 4px;
+                background-color: var(--error-color);
+                border-radius: 2px;
+            }
+
+            .error-low {
+                background-color: rgba(22, 101, 52, 0.1);
+                position: relative;
+            }
+
+            .error-low::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 4px;
+                background-color: var(--success-color);
+                border-radius: 2px;
+            }
+
+            .positive {
+                color: var(--success-color);
+                font-weight: 600;
+            }
+
+            .negative {
+                color: var(--error-color);
+                font-weight: 600;
+            }
+
+            /* Summary Stats */
+            .summary-stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+            }
+
+            .stat-item {
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                border-left: 4px solid var(--primary-color);
+                transition: all 0.2s ease;
+            }
+
+            .stat-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .stat-label {
+                display: block;
+                font-size: 0.9rem;
+                color: #666;
+                margin-bottom: 5px;
+            }
+
+            .stat-value {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: var(--primary-dark);
+            }
+
+            /* Responsif */
+            @media (max-width: 768px) {
+                .filter-controls {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .filter-actions {
+                    margin-left: 0;
+                    justify-content: center;
+                }
+
+                .summary-stats {
+                    grid-template-columns: 1fr;
+                }
+
+                .chart-controls {
+                    flex-wrap: wrap;
+                }
+
+                #comparisonTable {
+                    display: block;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                }
+
+                #comparisonTable th,
+                #comparisonTable td {
+                    min-width: 120px;
+                }
+            }
+        </style>
     </div>
+@endsection
 
-    @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.2"></script>
-        <script>
-            // Data untuk chart
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Data dari PHP
+            const hasilPengujian = @json($hasilPengujian);
+            let currentChart = null;
+            let currentChartType = 'line';
 
-            // Data aktual dan prediksi dari backend
-            const aktualData = @json($aktual);
-            const prediksiData = @json($prediksi);
+            // Elements
+            const bloodTypeFilter = document.getElementById('bloodTypeFilter');
+            const resetFilterBtn = document.getElementById('resetFilter');
+            const exportDataBtn = document.getElementById('exportData');
+            const toggleChartTypeBtn = document.getElementById('toggleChartType');
+            const filterSummary = document.getElementById('filterSummary');
+            const tableInfo = document.getElementById('tableInfo');
 
-            // Function untuk mendapatkan data berdasarkan golongan darah
-            function getDataByBloodType(data, bloodType) {
-                return months.map((_, index) => {
-                    const monthData = data.find(item =>
-                        item.bulan === index + 1 &&
-                        item.golongan_darah === bloodType
-                    );
-                    return monthData ? (typeof monthData.jumlah === 'string' ? parseFloat(monthData.jumlah) : monthData
-                        .jumlah) : 0;
+            // Initialize
+            initializeChart();
+            setupEventListeners();
+
+            function setupEventListeners() {
+                bloodTypeFilter.addEventListener('change', handleFilterChange);
+                resetFilterBtn.addEventListener('click', resetFilter);
+                exportDataBtn.addEventListener('click', exportData);
+                toggleChartTypeBtn.addEventListener('click', toggleChartType);
+            }
+
+            function handleFilterChange() {
+                const selectedType = bloodTypeFilter.value;
+                filterTableData(selectedType);
+                updateChart(selectedType);
+                updateSummary(selectedType);
+                updateFilterSummary(selectedType);
+            }
+
+            function filterTableData(bloodType) {
+                const rows = document.querySelectorAll('#comparisonTable tbody tr');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const rowBloodType = row.dataset.bloodType;
+                    if (bloodType === 'all' || rowBloodType === bloodType) {
+                        row.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        row.classList.add('hidden');
+                    }
+                });
+
+                tableInfo.textContent = `Total: ${visibleCount} data`;
+            }
+
+            function updateChart(bloodType) {
+                const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+                // Filter data berdasarkan golongan darah
+                let filteredData = hasilPengujian;
+                if (bloodType !== 'all') {
+                    filteredData = hasilPengujian.filter(item => item.golongan === bloodType);
+                }
+
+                // Kelompokkan data per golongan darah
+                const groupedData = {
+                    'A': {
+                        actual: [],
+                        predicted: [],
+                        months: []
+                    },
+                    'B': {
+                        actual: [],
+                        predicted: [],
+                        months: []
+                    },
+                    'AB': {
+                        actual: [],
+                        predicted: [],
+                        months: []
+                    },
+                    'O': {
+                        actual: [],
+                        predicted: [],
+                        months: []
+                    }
+                };
+
+                // Isi data
+                filteredData.forEach(item => {
+                    if (groupedData[item.golongan]) {
+                        groupedData[item.golongan].actual.push(item.permintaan_aktual);
+                        groupedData[item.golongan].predicted.push(item.hasil_prediksi);
+                        groupedData[item.golongan].months.push(item.bulan);
+                    }
+                });
+
+                // Warna untuk setiap golongan
+                const bloodTypeColors = {
+                    'A': {
+                        color: '#dc2626',
+                        bgColor: 'rgba(220, 38, 38, 0.1)'
+                    },
+                    'B': {
+                        color: '#2563eb',
+                        bgColor: 'rgba(37, 99, 235, 0.1)'
+                    },
+                    'AB': {
+                        color: '#16a34a',
+                        bgColor: 'rgba(22, 163, 74, 0.1)'
+                    },
+                    'O': {
+                        color: '#d97706',
+                        bgColor: 'rgba(217, 119, 6, 0.1)'
+                    }
+                };
+
+                // Siapkan dataset untuk chart
+                const datasets = [];
+
+                Object.keys(groupedData).forEach(type => {
+                    if (groupedData[type].months.length > 0) {
+                        // Data aktual
+                        datasets.push({
+                            label: `Aktual ${type}`,
+                            data: groupedData[type].actual,
+                            borderColor: bloodTypeColors[type].color,
+                            backgroundColor: bloodTypeColors[type].bgColor,
+                            borderWidth: currentChartType === 'line' ? 2 : 0,
+                            borderDash: currentChartType === 'line' ? [5, 5] : [],
+                            tension: 0.1,
+                            fill: false
+                        });
+
+                        // Data prediksi
+                        datasets.push({
+                            label: `Prediksi ${type}`,
+                            data: groupedData[type].predicted,
+                            borderColor: bloodTypeColors[type].color,
+                            backgroundColor: currentChartType === 'bar' ? bloodTypeColors[type]
+                                .color : bloodTypeColors[type].bgColor,
+                            borderWidth: currentChartType === 'line' ? 3 : 0,
+                            tension: 0.3,
+                            fill: false
+                        });
+                    }
+                });
+
+                // Hapus chart lama
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+
+                // Buat chart baru
+                currentChart = new Chart(ctx, {
+                    type: currentChartType,
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt',
+                            'Nov', 'Des'
+                        ],
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Perbandingan Aktual vs Prediksi ${bloodType === 'all' ? 'Semua Golongan' : 'Golongan ' + bloodType}`,
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                },
+                                color: '#7f1d1d'
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.raw} kantong`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Jumlah Kantong Darah',
+                                    color: '#7f1d1d'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Bulan',
+                                    color: '#7f1d1d'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'nearest'
+                        }
+                    }
                 });
             }
 
-            // Data untuk chart berdasarkan golongan darah
-            const chartData = {
-                labels: months,
-                datasets: [{
-                        label: 'Aktual',
-                        data: getDataByBloodType(aktualData, 'A'), // Default golongan A
-                        borderColor: '#e53e3e',
-                        backgroundColor: 'rgba(229, 62, 62, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: true
-                    },
-                    {
-                        label: 'Prediksi',
-                        data: getDataByBloodType(prediksiData, 'A'), // Default golongan A
-                        borderColor: '#3182ce',
-                        backgroundColor: 'rgba(49, 130, 206, 0.1)',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        tension: 0.3,
-                        fill: true
-                    }
-                ]
-            };
-
-            // Inisialisasi chart
-            const ctx = document.getElementById('resultsChart').getContext('2d');
-            const resultsChart = new Chart(ctx, {
-                type: 'line',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Perbandingan Aktual vs Prediksi Golongan Darah A',
-                            font: {
-                                size: 16,
-                                weight: 'bold'
-                            }
-                        },
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.raw.toFixed(2)} kantong`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            title: {
-                                display: true,
-                                text: 'Jumlah Kantong Darah'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Bulan'
-                            },
-                            grid: {
-                                display: false
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'nearest'
-                    }
+            function updateSummary(bloodType) {
+                let filteredData = hasilPengujian;
+                if (bloodType !== 'all') {
+                    filteredData = hasilPengujian.filter(item => item.golongan === bloodType);
                 }
-            });
 
-            // Function untuk update chart berdasarkan golongan darah
-            function updateChartByBloodType(bloodType) {
-                if (bloodType === 'all') {
-                    // Handle "all" case jika diperlukan
+                if (filteredData.length === 0) {
+                    document.getElementById('avgError').textContent = '0%';
+                    document.getElementById('bestPred').textContent = 'Tidak ada data';
+                    document.getElementById('worstPred').textContent = 'Tidak ada data';
+                    document.getElementById('dataCount').textContent = '0';
                     return;
                 }
 
-                // Update data untuk kedua dataset
-                resultsChart.data.datasets[0].data = getDataByBloodType(aktualData, bloodType);
-                resultsChart.data.datasets[1].data = getDataByBloodType(prediksiData, bloodType);
+                // Hitung rata-rata error
+                const totalError = filteredData.reduce((sum, item) => sum + Math.abs(parseFloat(item.error)), 0);
+                const avgError = (totalError / filteredData.length).toFixed(2);
 
-                // Update title
-                resultsChart.options.plugins.title.text = `Perbandingan Aktual vs Prediksi Golongan Darah ${bloodType}`;
+                // Cari prediksi terbaik dan terburuk
+                const sortedByError = [...filteredData].sort((a, b) => Math.abs(a.error) - Math.abs(b.error));
+                const bestPred = sortedByError[0];
+                const worstPred = sortedByError[sortedByError.length - 1];
 
-                // Update chart
-                resultsChart.update();
+                // Update UI
+                document.getElementById('avgError').textContent = `${avgError}%`;
+                document.getElementById('bestPred').textContent = `${bestPred.golongan} (${bestPred.error}%)`;
+                document.getElementById('worstPred').textContent = `${worstPred.golongan} (${worstPred.error}%)`;
+                document.getElementById('dataCount').textContent = filteredData.length;
             }
 
-            // Function untuk update chart type
-            function updateChartType(chartType) {
-                resultsChart.config.type = chartType;
-                resultsChart.update();
+            function updateFilterSummary(bloodType) {
+                const summaryText = bloodType === 'all' ? 'Semua Golongan Darah' : `Golongan ${bloodType}`;
+                filterSummary.innerHTML = `<span>Menampilkan: <strong>${summaryText}</strong></span>`;
             }
 
-            // Event listener untuk filter golongan darah
-            document.querySelector('.blood-type-select').addEventListener('change', (e) => {
-                updateChartByBloodType(e.target.value);
-            });
+            function resetFilter() {
+                bloodTypeFilter.value = 'all';
+                handleFilterChange();
+            }
 
-            // Event listener untuk chart type
-            document.querySelector('.chart-type-select').addEventListener('change', (e) => {
-                updateChartType(e.target.value);
-            });
+            function toggleChartType() {
+                currentChartType = currentChartType === 'line' ? 'bar' : 'line';
+                toggleChartTypeBtn.innerHTML = currentChartType === 'line' ?
+                    '<i class="bx bx-bar-chart"></i> Bar Chart' :
+                    '<i class="bx bx-line-chart"></i> Line Chart';
 
-            // Tab switching functionality
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    // Remove active class dari semua tab
-                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove(
-                        'active'));
+                const selectedType = bloodTypeFilter.value;
+                updateChart(selectedType);
+            }
 
-                    // Add active class ke tab yang diklik
-                    button.classList.add('active');
-                    document.getElementById(`${button.dataset.tab}-tab`).classList.add('active');
+            // Replace the exportData function with this:
+            function saveData() {
+                const selectedType = bloodTypeFilter.value;
+                let filteredData = hasilPengujian;
 
-                    // Update chart ketika switch ke chart tab
-                    if (button.dataset.tab === 'chart') {
-                        resultsChart.update();
-                    }
-                });
-            });
-        </script>
-    @endpush
-@endsection
+                if (selectedType !== 'all') {
+                    filteredData = hasilPengujian.filter(item => item.golongan === selectedType);
+                }
+
+                // Show loading state
+                exportDataBtn.innerHTML = '<i class="bx bx-loader bx-spin"></i> Menyimpan...';
+                exportDataBtn.disabled = true;
+
+                // Send data to server
+                fetch('{{ route('admin.pengujian.store') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            data: filteredData
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Data berhasil disimpan!');
+                        } else {
+                            console.log(data.message)
+                            alert('Gagal menyimpan data: ' + (data.message || 'Terjadi kesalahan'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Terjadi kesalahan saat menyimpan data');
+                    })
+                    .finally(() => {
+                        exportDataBtn.innerHTML = '<i class="bx bx-save"></i> Simpan Data';
+                        exportDataBtn.disabled = false;
+                    });
+            }
+
+            // Update the event listener setup:
+            function setupEventListeners() {
+                bloodTypeFilter.addEventListener('change', handleFilterChange);
+                resetFilterBtn.addEventListener('click', resetFilter);
+                exportDataBtn.addEventListener('click', saveData); // Changed from exportData to saveData
+                toggleChartTypeBtn.addEventListener('click', toggleChartType);
+            }
+
+            function initializeChart() {
+                updateChart('all');
+            }
+        });
+    </script>
+@endpush

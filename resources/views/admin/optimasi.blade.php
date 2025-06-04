@@ -50,6 +50,7 @@
                     <th>Golongan Darah</th>
                     <th>Alpha</th>
                     <th>Beta</th>
+                    <th>Gamma</th>
                     <th>MAPE (%)</th>
                     <th>RMSE</th>
                     <th>Periode Data</th>
@@ -79,6 +80,7 @@
                         <td>Golongan {{ $golongan }}</td>
                         <td>{{ $data ? number_format($data->alpha, 2) : '-' }}</td>
                         <td>{{ $data ? number_format($data->beta, 2) : '-' }}</td>
+                        <td>{{ $data ? number_format($data->gamma, 2) : '-' }}</td>
                         <td>{{ $data ? number_format($mape, 2).'%' : '-' }}</td>
                         <td>{{ $data ? number_format($data->rmse, 2) : '-' }}</td>
                         <td>
