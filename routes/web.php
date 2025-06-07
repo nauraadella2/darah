@@ -30,18 +30,16 @@ Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('l
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-
 // Route untuk Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/permintaan', [AdminController::class, 'permintaan'])->name('permintaan');
-    Route::get('/prediksi', [AdminController::class, 'prediksi'])->name('prediksi');
+
     Route::get('/optimasi', [AdminController::class, 'optimasi'])->name('optimasi');
     Route::get('/pengujian', [AdminController::class, 'pengujian'])->name('pengujian');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::get('/input', [AdminController::class, 'input'])->name('input');
     Route::post('/input', [PermintaanDarahController::class, 'store'])->name('store');
-
+ Route::get('/permintaan', [AdminController::class, 'permintaan'])->name('permintaan');
     Route::post('/permintaan/input', [PermintaanDarahController::class, 'create'])->name('permintaan.input');
     Route::post('/permintaan/store', [PermintaanDarahController::class, 'store'])->name('permintaan.store');
 
@@ -55,16 +53,27 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/pengujian', [PengujianController::class, 'index'])->name('pengujian.index');
     Route::post('/pengujian/proses', [PengujianController::class, 'proses'])->name('pengujian.proses');
     Route::get('/pengujian/filter', [PengujianController::class, 'filter'])->name('pengujian.filter');
+    Route::post('/pengujian', [PengujianController::class, 'store'])->name('pengujian.store');
+  
+    // Dalam group admin
+   Route::get('/permintaan/{id}/edit', [PermintaanDarahController::class, 'edit'])->name('permintaan.edit');
+    Route::put('/permintaan/{id}', [PermintaanDarahController::class, 'update'])->name('permintaan.update');
+    Route::delete('/permintaan/{id}', [PermintaanDarahController::class, 'destroy'])->name('permintaan.destroy');
 
-});
+// Add these routes inside the admin group
+Route::post('/permintaan/single', [PermintaanDarahController::class, 'storeSingle'])->name('permintaan.single');
+Route::post('/permintaan/confirm-overwrite', [PermintaanDarahController::class, 'store'])->name('permintaan.confirm-overwrite');
+  });
 
 
 
 // Route untuk Petugas
 Route::middleware(['role:petugas'])->prefix('petugas')->name('petugas.')->group(function () {
-    Route::get('/dashboard', [PetugasController::class, 'dashboard'])->name('dashboard');
-    Route::get('/permintaan', [PetugasController::class, 'permintaan'])->name('permintaan');
-    Route::get('/prediksi', [PetugasController::class, 'prediksi'])->name('prediksi');
+    Route::get('/permintaan', [AdminController::class, 'permintaan'])->name('permintaan');
+    Route::get('/prediksi', [AdminController::class, 'prediksi'])->name('prediksi');
+    Route::get('/prediksi', [PredictionController::class, 'index'])->name('prediksi.index');
+    Route::post('/prediksi/hitung', [PredictionController::class, 'hitungPrediksi'])->name('prediksi.hitung');
+    Route::delete('/prediksi/hapus/{id}', [PredictionController::class, 'destroy'])->name('prediksi.hapus');
 });
 
 

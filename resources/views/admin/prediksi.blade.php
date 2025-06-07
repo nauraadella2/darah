@@ -5,7 +5,7 @@
         <div class="prediction-header">
             <h2><i class="bx bx-trending-up"></i> Prediksi Kebutuhan Darah</h2>
             <div class="header-info">
-                <span class="training-data">Data Training: {{ $lastTrainingYear - 1 }} - {{ $lastTrainingYear }}</span>
+                <span class="training-data">Data Training: {{ $tahunOptimasi['periode_mulai']  }} - {{ $tahunOptimasi['periode_selesai']  }}</span>
             </div>
         </div>
 
@@ -27,26 +27,12 @@
                     </div>
                     <div class="form-group">
                         <label>Jumlah Bulan Prediksi</label>
-                        <input type="number" name="periods" min="1" max="12" value="6" required>
+                        <input type="number" name="periods" min="1" max="12" value="12" required>
                     </div>
+                    <input type="number" name="tahun_mulai" value="{{ $tahunOptimasi['periode_mulai']  }}" hidden>
+                    <input type="number" name="tahun_selesai" value="{{ $tahunOptimasi['periode_selesai']  }}" hidden>
 
-                    <div class="form-group">
-                        <label>Alpha (α)</label>
-                        <input type="number" name="alpha" step="0.1" min="0.1" max="0.9"
-                            placeholder="0.1 - 0.9">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Beta (β)</label>
-                        <input type="number" name="beta" step="0.1" min="0.1" max="0.9"
-                            placeholder="0.1 - 0.9">
-                    </div>
-                    <div class="form-group">
-                        <label>Gamma</label>
-                        <input type="number" name="gamma" step="0.1" min="0.1" max="0.9"
-                            placeholder="0.1 - 0.9">
-                    </div>
-
+                    
                     <button type="submit" class="btn-submit">
                         <i class="bx bx-play"></i> Proses
                     </button>

@@ -15,9 +15,23 @@ class PredictionController extends Controller
 {
     public function index()
     {
+        // Cek apakah sudah ada data optimasi
+        $optimasi = Optimasi::select('periode_mulai', 'periode_selesai')->first();
+
+        // Jika belum ada, arahkan dengan pesan warning
+        if (!$optimasi) {
+            return redirect()->route('admin.optimasi')
+                ->with('warning', 'Data optimasi belum tersedia. Silakan lakukan proses optimasi terlebih dahulu.');
+        }
+
+        // dd($optimasi);
+
+        // Jika data ada, lanjutkan proses
         $lastTrainingYear = Optimasi::max('periode_selesai') ?? date('Y') - 1;
         $tahunPrediksiTersedia = range($lastTrainingYear + 1, date('Y') + 1);
-        // Base query for predictions
+
+
+
         $query = PrediksiDarah::query();
 
         // Get predictions and group by year and month
@@ -76,6 +90,7 @@ class PredictionController extends Controller
         $availableMonths = $prediksiData->pluck('bulan')->unique()->sort()->values();
 
         return view('admin.prediksi', [
+            'tahunOptimasi' => $optimasi,
             'tahunBerikutnya' => $tahunBerikutnya,
             'lastTrainingYear' => $lastTrainingYear,
             'predictions' => $predictions,
@@ -91,7 +106,11 @@ class PredictionController extends Controller
             'alpha' => 'nullable|numeric|between:0.1,0.9',
             'beta' => 'nullable|numeric|between:0.1,0.9',
             'gamma' => 'nullable|numeric|between:0.1,0.9',
+            'tahun_mulai' => 'required|integer',
+            'tahun_selesai' => 'required|integer',
         ]);
+
+        // dd($validate);
 
         try {
             // Get optimization parameters from database
@@ -117,6 +136,7 @@ class PredictionController extends Controller
 
             // Get historical data (example query - adjust as needed)
             $historicalData = PermintaanDarah::select(['tahun', 'bulan', 'golongan_darah', 'jumlah'])
+                ->whereBetween('tahun', [$validate["tahun_mulai"], $validate["tahun_selesai"]]) // Tambahkan filter tahun di sini
                 ->get()
                 ->map(function ($item) {
                     return [
@@ -127,6 +147,7 @@ class PredictionController extends Controller
                     ];
                 })
                 ->toArray();
+
             $periods = (int)$request->input('periods', 6);
 
             // Prepare payload for Python API
@@ -191,7 +212,6 @@ class PredictionController extends Controller
 
         // Loop through each prediction date
         foreach ($predictions['by_date'] as $prediction) {
-            // dd($prediction);
             $date = new DateTime($prediction['date']);
             $tahun = (int)$date->format('Y');
             $bulan = (int)$date->format('n');
@@ -201,7 +221,7 @@ class PredictionController extends Controller
                 if (isset($prediction[$bloodType])) {
                     PrediksiDarah::create([
                         'golongan_darah' => $bloodType,
-                        'tahun' => 2222,
+                        'tahun' => $tahun,
                         'bulan' => $bulan,
                         'jumlah' => $prediction[$bloodType],
                         'is_aktual' => false, // This is prediction, not actual data

@@ -8,59 +8,13 @@ use App\Models\PermintaanDarah;
 use App\Models\OptimizedAlpha;
 
 class AdminController extends Controller
-{
+{ 
     public function dashboard()
     {
         return view('admin.dashboard');
-    }
+    } 
 
-    // public function permintaan()
-    // {
-    //     $permintaanData = PermintaanDarah::orderBy('tahun', 'asc')
-    //         ->orderBy('bulan', 'asc')
-    //         ->get();
-
-    //     // Format data untuk tabel
-    //     $dataPermintaan = [];
-    //     foreach ($permintaanData as $data) {
-    //         $dataPermintaan[] = [
-    //             'tanggal' => date('F Y', mktime(0, 0, 0, $data->bulan, 1, $data->tahun)),
-    //             'gol_a' => $data->gol_a,
-    //             'gol_b' => $data->gol_b,
-    //             'gol_ab' => $data->gol_ab,
-    //             'gol_o' => $data->gol_o,
-    //         ];
-    //     }
-
-    //     // Siapkan data untuk chart
-    //     $chartLabels = [];
-    //     $chartData = [
-    //         'A' => [],
-    //         'B' => [],
-    //         'AB' => [],
-    //         'O' => []
-    //     ];
-
-    //     foreach ($permintaanData as $data) {
-    //         $label = date('M Y', mktime(0, 0, 0, $data->bulan, 1, $data->tahun));
-    //         $chartLabels[] = $label;
-            
-    //         $chartData['A'][] = $data->gol_a;
-    //         $chartData['B'][] = $data->gol_b;
-    //         $chartData['AB'][] = $data->gol_ab;
-    //         $chartData['O'][] = $data->gol_o;
-    //     }
-
-    //     // Ambil tahun tersedia untuk filter
-    //     $tahunTersedia = PermintaanDarah::select('tahun')
-    //         ->distinct()
-    //         ->orderBy('tahun', 'desc')
-    //         ->pluck('tahun')
-    //         ->toArray();
-
-    //     return view('admin.permintaan', compact('dataPermintaan', 'chartLabels', 'chartData', 'tahunTersedia'));
-    // }
-
+  
 
 public function permintaan()
     {
