@@ -9,6 +9,7 @@ class PermintaanDarah extends Model
     protected $table = 'permintaan_darah';
 
     protected $fillable = [
+        'id',
         'tahun',
         'bulan',
         'golongan_darah', // Diubah dari gol_a, gol_b, dll

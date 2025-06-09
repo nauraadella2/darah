@@ -17,7 +17,7 @@ class PrediksiDarah extends Model
         'is_aktual',
         'alpha',
         'beta',
-        'optimasi_id',
+        'gamma',
         'user_id'
     ];
 
@@ -27,21 +27,8 @@ class PrediksiDarah extends Model
         'jumlah' => 'decimal:2',
         'is_aktual' => 'boolean',
         'alpha' => 'decimal:2',
-        'beta' => 'decimal:2'
+        'beta' => 'decimal:2',
+        'gamma' => 'decimal:2'
     ];
 
-    public function optimasi()
-    {
-        return $this->belongsTo(Optimasi::class);
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function scopePrediksi($query)
-    {
-        return $query->where('is_aktual', false);
-    }
 }

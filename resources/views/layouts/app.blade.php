@@ -18,17 +18,29 @@
     <link href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 
+    <!-- Favicon dari Boxicons -->
+      <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='red'><path d='M12 18c4 0 7-3 7-7 0-2-1-4-2-6-1-2-5-5-5-5S8 4 7 6c-1 2-2 4-2 6 0 4 3 7 7 7z'/></svg>">
+
+     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 
 
 <body>
-    <!-- Navbar -->
-    <header class="navbar" style="border-bottom: 4px solid red;">
-        <div class="logo-name">
-            <i class="bx bxs-droplet" style="color: red; margin-left: 10px;"></i>
-            <span class="logo-text">Pantau Darah .</span>
-        </div>
-    </header>
+   
+<!-- Navbar -->
+<header class="navbar" style="border-bottom: 4px solid red; display: flex; align-items: center; padding: 10px 0; background-color: white;">
+    <div class="logo-name" style="display: flex; align-items: center;">
+        <i class="bx bxs-droplet" style="color: red; margin-left: 10px; font-size: 1.5rem;"></i>
+        <span class="logo-text" style="margin-left: 10px; font-weight: bold; color: #333; font-size: 1.2rem;">Pantau Darah .</span>
+    </div>
+    
+    @auth
+    <div class="user-info" style="margin-left: auto; margin-right: 20px; display: flex; align-items: center; gap: 8px;">
+        <i class='bx bx-user-circle' style="color: #555; font-size: 1.4rem;"></i>
+        <span style="color: #333; font-weight: 500; font-size: 0.95rem;">{{ Auth::user()->name }}</span>
+    </div>
+    @endauth
+</header>
 
     <div class="main-layout">
         <!-- Sidebar -->

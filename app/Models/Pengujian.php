@@ -12,8 +12,11 @@ class Pengujian extends Model
         'golongan_darah',
         'tahun',
         'mape',
-        'alpha',
-        'beta'
+        'hasil_perbulan',
+        'permintaan_aktual',
+        'hasil_prediksi',
+        'selisih',
+        'error'
     ];
 
     public function user()

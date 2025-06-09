@@ -3,18 +3,65 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use App\Models\PermintaanDarah;
 use App\Models\OptimizedAlpha;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 { 
+ 
     public function dashboard()
     {
-        return view('admin.dashboard');
-    } 
+        // Get distinct years from permintaan_darah table
+        $years = PermintaanDarah::select('tahun as year')
+    ->groupBy('tahun')
+    ->orderBy('tahun', 'desc')
+    ->pluck('year');
+            
+        // Get yearly summary with accurate totals
+        $yearlySummary = PermintaanDarah::select([
+        'tahun as year',
+        DB::raw('SUM(jumlah) as total'),
+        DB::raw('SUM(CASE WHEN golongan_darah = "A" THEN jumlah ELSE 0 END) as a'),
+        DB::raw('SUM(CASE WHEN golongan_darah = "B" THEN jumlah ELSE 0 END) as b'),
+        DB::raw('SUM(CASE WHEN golongan_darah = "AB" THEN jumlah ELSE 0 END) as ab'),
+        DB::raw('SUM(CASE WHEN golongan_darah = "O" THEN jumlah ELSE 0 END) as o')
+    ])
+    ->groupBy('tahun')
+    ->orderBy('tahun', 'desc')
+    ->get();
 
-  
+        return view('admin.dashboard', compact('years', 'yearlySummary'));
+    }
+
+    public function getDashboardData(Request $request)
+    {
+        $year = $request->get('year', date('Y'));
+        
+        // Get monthly data for selected year
+       $monthlyData = PermintaanDarah::select([
+        'bulan as month',
+        DB::raw('SUM(jumlah) as total')
+    ])
+    ->where('tahun', $year)
+    ->groupBy('bulan')
+    ->orderBy('bulan')
+    ->get();
+            
+        // Fill in missing months with 0
+        $filledData = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthData = $monthlyData->firstWhere('month', $i);
+            $filledData[] = $monthData ? $monthData->total : 0;
+        }
+
+        $total = array_sum($filledData);
+
+        return response()->json([
+            'total' => $total,
+            'monthly_data' => $filledData
+        ]);
+    }
 
 public function permintaan()
     {

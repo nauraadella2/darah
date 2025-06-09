@@ -13,8 +13,8 @@ class Optimasi extends Model
         'golongan_darah',
         'alpha',
         'beta', 
+        'gamma',
         'mape',
-        'rmse',
         'periode_mulai',
         'periode_selesai'
     ];
@@ -22,8 +22,8 @@ class Optimasi extends Model
     protected $casts = [
         'alpha' => 'float',
         'beta' => 'float',
-        'mape' => 'float',
-        'rmse' => 'float'
+        'gamma'=> 'float',
+        'mape' => 'float'
     ];
 
     public function user()

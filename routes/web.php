@@ -33,7 +33,8 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name
 // Route untuk Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-
+    Route::get('/dashboard-data', [AdminController::class, 'getDashboardData'])->name('dashboard.data');
+    
     Route::get('/optimasi', [AdminController::class, 'optimasi'])->name('optimasi');
     Route::get('/pengujian', [AdminController::class, 'pengujian'])->name('pengujian');
     Route::get('/users', [AdminController::class, 'users'])->name('users');

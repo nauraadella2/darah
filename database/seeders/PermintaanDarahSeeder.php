@@ -2,95 +2,112 @@
 
 namespace Database\Seeders;
 
-use App\Models\PermintaanDarah;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class PermintaanDarahSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        // Path ke file CSV
-        $filePath = storage_path('app/Blood Request, 2012-2014.csv');
-        
-        // Baca file CSV
-        $file = fopen($filePath, 'r');
-        
-        // Lewati 4 baris header
-        for ($i = 0; $i < 4; $i++) {
-            fgetcsv($file);
-        }
-        
-        // Mapping nama bulan ke angka
-        $bulanMapping = [
-            'January' => 1,
-            'February' => 2,
-            'March' => 3,
-            'April' => 4,
-            'May' => 5,
-            'June' => 6,
-            'July' => 7,
-            'August' => 8,
-            'September' => 9,
-            'October' => 10,
-            'November' => 11,
-            'December' => 12
+        $data = [
+            // 2022
+            ['tanggal' => 'Sep-22', 'A' => 62, 'B' => 53, 'O' => 169, 'AB' => 6],
+            ['tanggal' => '01/10/2022', 'A' => 53, 'B' => 60, 'O' => 202, 'AB' => 8],
+            ['tanggal' => 'Nov-22', 'A' => 58, 'B' => 52, 'O' => 138, 'AB' => 5],
+            ['tanggal' => '01/12/2022', 'A' => 58, 'B' => 46, 'O' => 241, 'AB' => 2],
+            
+            // 2023
+            ['tanggal' => 'Jan-23', 'A' => 77, 'B' => 44, 'O' => 204, 'AB' => 9],
+            ['tanggal' => '01/02/2023', 'A' => 83, 'B' => 43, 'O' => 222, 'AB' => 8],
+            ['tanggal' => 'Mar-23', 'A' => 41, 'B' => 39, 'O' => 146, 'AB' => 4],
+            ['tanggal' => '01/04/2023', 'A' => 45, 'B' => 46, 'O' => 262, 'AB' => 6],
+            ['tanggal' => 'May-23', 'A' => 80, 'B' => 50, 'O' => 239, 'AB' => 7],
+            ['tanggal' => '01/06/2023', 'A' => 90, 'B' => 51, 'O' => 213, 'AB' => 7],
+            ['tanggal' => 'Jul-23', 'A' => 47, 'B' => 32, 'O' => 199, 'AB' => 2],
+            ['tanggal' => '01/08/2023', 'A' => 40, 'B' => 49, 'O' => 231, 'AB' => 2],
+            ['tanggal' => 'Sep-23', 'A' => 71, 'B' => 47, 'O' => 167, 'AB' => 4],
+            ['tanggal' => '01/10/2023', 'A' => 82, 'B' => 47, 'O' => 219, 'AB' => 3],
+            ['tanggal' => 'Nov-23', 'A' => 90, 'B' => 42, 'O' => 188, 'AB' => 4],
+            ['tanggal' => '01/12/2023', 'A' => 60, 'B' => 45, 'O' => 207, 'AB' => 4],
+            
+            // 2024
+            ['tanggal' => 'Jan-24', 'A' => 42, 'B' => 35, 'O' => 200, 'AB' => 8],
+            ['tanggal' => '01/02/2024', 'A' => 55, 'B' => 36, 'O' => 199, 'AB' => 2],
+            ['tanggal' => 'Mar-24', 'A' => 41, 'B' => 55, 'O' => 122, 'AB' => 6],
+            ['tanggal' => '01/04/2024', 'A' => 48, 'B' => 61, 'O' => 215, 'AB' => 7],
+            ['tanggal' => 'May-24', 'A' => 62, 'B' => 66, 'O' => 218, 'AB' => 3],
+            ['tanggal' => '01/06/2024', 'A' => 52, 'B' => 52, 'O' => 215, 'AB' => 8],
+            ['tanggal' => 'Jul-24', 'A' => 44, 'B' => 49, 'O' => 199, 'AB' => 4],
+            ['tanggal' => '01/08/2024', 'A' => 40, 'B' => 42, 'O' => 236, 'AB' => 5],
+            ['tanggal' => 'Sep-24', 'A' => 44, 'B' => 52, 'O' => 234, 'AB' => 10],
+            ['tanggal' => '01/10/2024', 'A' => 67, 'B' => 69, 'O' => 251, 'AB' => 9],
+            ['tanggal' => 'Nov-24', 'A' => 58, 'B' => 55, 'O' => 231, 'AB' => 2],
+            ['tanggal' => '01/12/2024', 'A' => 54, 'B' => 60, 'O' => 245, 'AB' => 8],
+            
+            // 2025
+            ['tanggal' => 'Jan-25', 'A' => 53, 'B' => 44, 'O' => 139, 'AB' => 1],
+            ['tanggal' => '01/02/2025', 'A' => 91, 'B' => 51, 'O' => 197, 'AB' => 2],
+            ['tanggal' => 'Mar-25', 'A' => 60, 'B' => 51, 'O' => 200, 'AB' => 1],
         ];
-        
-        // Proses setiap baris data
-        while (($row = fgetcsv($file)) !== false) {
-            $namaBulan = trim($row[0]);
-            $bulan = $bulanMapping[$namaBulan] ?? null;
+
+        foreach ($data as $entry) {
+            $date = $this->parseDate($entry['tanggal']);
             
-            if (!$bulan) {
-                continue; // Lewati jika bukan data bulan
+            DB::table('permintaan_darah')->insert([
+                'tahun' => $date->year,
+                'bulan' => $date->month,
+                'golongan_darah' => 'A',
+                'jumlah' => $entry['A'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            DB::table('permintaan_darah')->insert([
+                'tahun' => $date->year,
+                'bulan' => $date->month,
+                'golongan_darah' => 'B',
+                'jumlah' => $entry['B'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            DB::table('permintaan_darah')->insert([
+                'tahun' => $date->year,
+                'bulan' => $date->month,
+                'golongan_darah' => 'O',
+                'jumlah' => $entry['O'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            if (isset($entry['AB'])) {
+                DB::table('permintaan_darah')->insert([
+                    'tahun' => $date->year,
+                    'bulan' => $date->month,
+                    'golongan_darah' => 'AB',
+                    'jumlah' => $entry['AB'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
-            
-            // Data untuk tahun 2012
-            $this->simpanData(2012, $bulan, [
-                'gol_a' => (int)$row[1],
-                'gol_b' => (int)$row[4],
-                'gol_o' => (int)$row[7],
-                'gol_ab' => (int)$row[10]
-            ]);
-            
-            // Data untuk tahun 2013
-            $this->simpanData(2013, $bulan, [
-                'gol_a' => (int)$row[2],
-                'gol_b' => (int)$row[5],
-                'gol_o' => (int)$row[8],
-                'gol_ab' => (int)$row[11]
-            ]);
-            
-            // Data untuk tahun 2014
-            $this->simpanData(2014, $bulan, [
-                'gol_a' => (int)$row[3],
-                'gol_b' => (int)$row[6],
-                'gol_o' => (int)$row[9],
-                'gol_ab' => (int)$row[12]
-            ]);
         }
-        
-        fclose($file);
-        $this->command->info('Seeder permintaan darah berhasil dijalankan!');
     }
-    
+
     /**
-     * Helper untuk menyimpan data
+     * Parse berbagai format tanggal ke objek Carbon
      */
-    protected function simpanData($tahun, $bulan, $data)
+    private function parseDate(string $dateString): \Carbon\Carbon
     {
-        PermintaanDarah::updateOrCreate(
-            [
-                'tahun' => $tahun,
-                'bulan' => $bulan
-            ],
-            $data
-        );
+        if (str_contains($dateString, '-')) {
+            // Format seperti "Sep-22"
+            return Carbon::createFromFormat('M-y', $dateString);
+        } else {
+            // Format seperti "01/10/2022"
+            return Carbon::createFromFormat('d/m/Y', $dateString);
+        }
     }
 }

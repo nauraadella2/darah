@@ -5,7 +5,7 @@
         <div class="prediction-header">
             <h2><i class="bx bx-test-tube"></i> Pengujian Prediksi vs Aktual</h2>
             <div class="header-info">
-                <span class="training-data">Membandingkan tahun {{ $tahunTerakhir }} (aktual) dengan {{ $tahunTerakhir + 1 }}
+                <span class="training-data">Membandingkan tahun {{ $tahun['tahun'] }} (aktual) dengan {{ $tahun['tahun']}}
                     (prediksi)</span>
             </div>
         </div>

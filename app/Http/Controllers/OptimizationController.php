@@ -114,7 +114,6 @@ class OptimizationController extends Controller
                 'beta' => (float)$detail['Beta (Trend)'],
                 'gamma' => (float)$detail['Gamma (Seasonal)'],
                 'mape' => $mape,
-                'rmse' => 0,
                 'periode_mulai' => $tahunMulai,
                 'periode_selesai' => $tahunSelesai,
                 'created_at' => now(),
