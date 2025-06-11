@@ -32,10 +32,10 @@
             </div>
             <div class="card-body action-buttons">
                 <a href="{{ route('admin.input') }}" class="btn-action btn-one-data">
-                    <i class="bx bx-plus"></i> Input data
+                    <i class="bx bx-plus"></i> Input data tahunan
                 </a>
                 <a href="{{ route('admin.input') }}" class="btn-action btn-two-data">
-                    <i class="bx bx-plus"></i> Input Dua Data
+                    <i class="bx bx-plus"></i> Input satu data
                 </a>
             </div>
         </div>

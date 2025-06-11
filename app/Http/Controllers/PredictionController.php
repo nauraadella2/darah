@@ -152,12 +152,12 @@ class PredictionController extends Controller
 
             // Prepare payload for Python API
             $payload = [
-                'optimize' => $optimizeParams,
+                // 'optimize' => $optimizeParams,
                 'data' => $historicalData
             ];
 
             // Call Python API
-            $response = Http::post('http://localhost:5000/predict-with-params?periods=' . $periods, $payload);
+            $response = Http::post('http://localhost:5000/predict?periods=' . $periods, $historicalData);
 
             if ($response->successful()) {
                 $result = $response->json();
