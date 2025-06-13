@@ -3,7 +3,7 @@
 @section('content')
 <div class="dashboard-container">
     <div class="dashboard-header">
-        <h2><i class="bx bx-home"></i> Dashboard Admin</h2>
+        <h2><i class="bx bx-home"></i> Beranda Admin</h2>
     </div>
 
     <div class="dashboard-cards">

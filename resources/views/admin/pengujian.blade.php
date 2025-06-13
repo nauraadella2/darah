@@ -5,8 +5,9 @@
         <div class="prediction-header">
             <h2><i class="bx bx-test-tube"></i> Pengujian Prediksi vs Aktual</h2>
             <div class="header-info">
-                <span class="training-data">Membandingkan tahun {{ $tahun['tahun'] }} (aktual) dengan {{ $tahun['tahun']}}
-                    (prediksi)</span>
+               <span class="training-data" style="color: #e63946; font-weight: 500; background-color: #ffebee; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #c62828;">
+    Membandingkan tahun {{ $tahun['tahun'] }} (aktual) dengan {{ $tahun['tahun'] }} (prediksi)
+</span>
             </div>
         </div>
 
@@ -36,19 +37,23 @@
         </div>
 
         <!-- Grafik Perbandingan -->
-        <div class="chart-card">
-            <div class="card-header">
-                <h3><i class="bx bx-line-chart"></i> Grafik Perbandingan</h3>
-                <div class="chart-controls">
-                    <button id="toggleChartType" class="btn-outline">
-                        <i class="bx bx-bar-chart"></i> Bar Chart
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <canvas id="comparisonChart" height="40" width="100"></canvas>
-            </div>
+        <div class="chart-card" style="border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <div class="card-header" style="padding: 16px; border-bottom: 1px solid #f5f5f5; background-color: #fff;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: #333; display: flex; align-items: center; gap: 8px;">
+            <i class="bx bx-line-chart" style="color: #e63946; font-size: 1.3rem;"></i>
+            Grafik Perbandingan
+        </h3>
+        <div class="chart-controls" style="margin-top: 8px;">
+            <button id="toggleChartType" class="btn-outline" style="background: none; border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; color: #555; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;">
+                <i class="bx bx-bar-chart" style="color: #e63946;"></i>
+                Bar Chart
+            </button>
         </div>
+    </div>
+    <div class="card-body" style="padding: 16px; background-color: #fafafa;">
+        <canvas id="comparisonChart" height="40" width="100"></canvas>
+    </div>
+</div>
 
         <!-- Tabel Perbandingan -->
         <div class="table-card">

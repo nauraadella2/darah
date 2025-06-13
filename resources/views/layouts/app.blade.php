@@ -35,9 +35,9 @@
     </div>
     
     @auth
-    <div class="user-info" style="margin-left: auto; margin-right: 20px; display: flex; align-items: center; gap: 8px;">
-        <i class='bx bx-user-circle' style="color: #555; font-size: 1.4rem;"></i>
-        <span style="color: #333; font-weight: 500; font-size: 0.95rem;">{{ Auth::user()->name }}</span>
+    <div class="bx bx-user" style="margin-left: auto; margin-right: 20px; display: flex; align-items: center; gap: 8px;">
+        {{-- <i class='bx bx-user-circle' style="color: #555; font-size: 1.4rem;"></i> --}}
+        <span style="color: #6e6464; font-weight: 500; font-size: 0.95rem;">{{ Auth::user()->name }}</span>
     </div>
     @endauth
 </header>
@@ -50,12 +50,12 @@
                     <li class="list">
                         <a href="{{ route('admin.dashboard') }}" class="nav-link">
                             <i class="bx bx-home-alt icon"></i>
-                            <span class="link">Dashboard</span>
+                            <span class="link">Beranda</span>
                         </a>
                     </li>
                     <li class="list">
                         <a href="{{ route('admin.permintaan') }}" class="nav-link">
-                            <i class="bx bx-home-alt icon"></i>
+                            <i class="bx bx-history icon"></i>
                             <span class="link">Data Historis</span>
                         </a>
                     </li>
@@ -67,19 +67,19 @@
           </li> --}}
                     <li class="list">
                         <a href="{{ route('admin.prediksi.index') }}" class="nav-link">
-                            <i class="bx bx-home-alt icon"></i>
+                            <i class="bx bx-bar-chart-alt icon"></i>
                             <span class="link">Prediksi</span>
                         </a>
                     </li>
                     <li class="list">
                         <a href="{{ route('admin.optimasi') }}" class="nav-link">
-                            <i class="bx bx-home-alt icon"></i>
+                            <i class="bx bx-rocket icon"></i>
                             <span class="link">Optimasi</span>
                         </a>
                     </li>
                     <li class="list">
                         <a href="{{ route('admin.pengujian.index') }}" class="nav-link">
-                            <i class="bx bx-home-alt icon"></i>
+                            <i class="bx bx-check-shield icon"></i>
                             <span class="link">Pengujian</span>
                         </a>
                     </li>

@@ -5,7 +5,9 @@
         <div class="prediction-header">
             <h2><i class="bx bx-trending-up"></i> Prediksi Kebutuhan Darah</h2>
             <div class="header-info">
-                <span class="training-data">Data Training: {{ $tahunOptimasi['periode_mulai']  }} - {{ $tahunOptimasi['periode_selesai']  }}</span>
+               <span class="training-data" style="color: #333; font-weight: 500; border-left: 4px solid #e63946; padding-left: 8px; background-color: #fff5f5;">
+  Data Training: {{ $tahunOptimasi['periode_mulai'] }} - {{ $tahunOptimasi['periode_selesai'] }}
+</span>
             </div>
         </div>
 
