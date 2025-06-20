@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PermintaanDarah;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+
 
 class PermintaanDarahController extends Controller
 {
@@ -26,30 +29,12 @@ class PermintaanDarahController extends Controller
         $data = [];
 
         foreach ($request->bulan as $index => $bulan) {
-            // Check if data exists for this month and year
-            $existingData = PermintaanDarah::where('tahun', $request->tahun)
+            // Hapus data lama jika ada, berdasarkan tahun dan bulan
+            PermintaanDarah::where('tahun', $request->tahun)
                 ->where('bulan', $bulan)
-                ->exists();
+                ->delete();
 
-            if ($existingData && !$request->has('confirm_overwrite')) {
-                return back()->withInput()->with('confirm', [
-                    'tahun' => $request->tahun,
-                    'bulan' => $bulan,
-                    'gol_a' => $request->gol_a[$index],
-                    'gol_b' => $request->gol_b[$index],
-                    'gol_ab' => $request->gol_ab[$index],
-                    'gol_o' => $request->gol_o[$index]
-                ]);
-            }
-
-            // Delete existing data if overwriting
-            if ($existingData) {
-                PermintaanDarah::where('tahun', $request->tahun)
-                    ->where('bulan', $bulan)
-                    ->delete();
-            }
-
-            // Simpan per golongan darah
+            // Siapkan data per golongan darah
             $golonganDarah = [
                 ['golongan' => 'A', 'jumlah' => $request->gol_a[$index]],
                 ['golongan' => 'B', 'jumlah' => $request->gol_b[$index]],
@@ -69,21 +54,23 @@ class PermintaanDarahController extends Controller
             }
         }
 
+        // Simpan semua data baru
         PermintaanDarah::insert($data);
 
-        return redirect()->route('admin.permintaan')->with('success', 'Data berhasil disimpan!');
+        return redirect()->route('admin.permintaan')->with('success', 'Data berhasil disimpan dan diperbarui!');
     }
+
 
     public function edit($id)
     {
         // Get data by year and month (id is in format year-month)
         list($tahun, $bulan) = explode('-', $id);
-        
+
         $data = PermintaanDarah::where('tahun', $tahun)
             ->where('bulan', $bulan)
             ->get()
             ->groupBy('golongan_darah')
-            ->map(function($item) {
+            ->map(function ($item) {
                 return $item->first()->jumlah;
             });
 
@@ -141,7 +128,7 @@ class PermintaanDarahController extends Controller
     public function destroy($id)
     {
         list($tahun, $bulan) = explode('-', $id);
-        
+
         PermintaanDarah::where('tahun', $tahun)
             ->where('bulan', $bulan)
             ->delete();
@@ -202,5 +189,37 @@ class PermintaanDarahController extends Controller
         PermintaanDarah::insert($data);
 
         return response()->json(['success' => 'Data berhasil disimpan!']);
+    }
+
+    public function exportPDF()
+    {
+        $dataPermintaan = PermintaanDarah::all()
+            ->groupBy(['tahun', 'bulan'])
+            ->map(function ($yearData) {
+                return $yearData->map(function ($monthData) {
+                    $monthName = \Carbon\Carbon::create()
+                        ->month($monthData->first()->bulan)
+                        ->format('F');
+
+                    return [
+                        'tahun' => $monthData->first()->tahun,
+                        'bulan' => $monthData->first()->bulan,
+                        'gol_a' => $monthData->where('golongan_darah', 'A')->first()->jumlah ?? 0,
+                        'gol_b' => $monthData->where('golongan_darah', 'B')->first()->jumlah ?? 0,
+                        'gol_ab' => $monthData->where('golongan_darah', 'AB')->first()->jumlah ?? 0,
+                        'gol_o' => $monthData->where('golongan_darah', 'O')->first()->jumlah ?? 0,
+                        'tanggal' => $monthName . ' ' . $monthData->first()->tahun
+                    ];
+                });
+            })
+            ->flatten(1)
+            ->sortBy(['tahun', 'bulan'])
+            ->values()
+            ->toArray();
+
+        $pdf = Pdf::loadView('admin.permintaan_pdf', compact('dataPermintaan'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('data_permintaan_darah_' . date('YmdHis') . '.pdf');
     }
 }

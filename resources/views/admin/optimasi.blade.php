@@ -22,8 +22,8 @@
             <div class="card-body">
                 <form method="POST" action="{{ route('admin.optimasi.hitung') }}">
                     @csrf
-                    <div class="d-flex align-items-end gap-3 flex-wrap">
-                        <div>
+                    <div class="form-periode-container">
+                        <div class="form-group">
                             <label class="form-label">Tahun Mulai</label>
                             <select name="tahun_mulai" class="form-select" required>
                                 <option value="">Pilih Tahun Mulai</option>
@@ -32,7 +32,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div>
+                        <div class="form-group">
                             <label class="form-label">Tahun Selesai</label>
                             <select name="tahun_selesai" class="form-select" required>
                                 <option value="">Pilih Tahun Selesai</option>
@@ -41,13 +41,11 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="d-flex align-items-end" style="padding-top: 24px;">
-                            <button type="submit" class="btn btn-danger"
-                                style="background-color: #f87171; border-color: #f87171;">
-                                <i class="bx bx-play"></i> Hitung Parameter
-                            </button>
-                        </div>
+                        <button type="submit" class="btn-pdf">
+                            <i class="bx bx-play"></i> Hitung Parameter
+                        </button>
                     </div>
+
                 </form>
             </div>
         </div>
@@ -126,7 +124,36 @@
 
     </div>
 @endsection
+
 <style>
+    .form-periode-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 200px;
+    }
+
+    .form-button {
+        padding-bottom: 0.1rem;
+    }
+
+    .btn-danger-holla {
+        background-color: #f87171;
+        border-color: #f87171;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-danger-holla:hover {
+        background-color: #ef4444;
+        border-color: #ef4444;
+    }
+
     .prediction-card {
         border: 1px solid #fcdcdc;
         /* merah tipis */

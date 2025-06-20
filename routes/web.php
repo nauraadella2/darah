@@ -64,7 +64,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 // Add these routes inside the admin group
 Route::post('/permintaan/single', [PermintaanDarahController::class, 'storeSingle'])->name('permintaan.single');
 Route::post('/permintaan/confirm-overwrite', [PermintaanDarahController::class, 'store'])->name('permintaan.confirm-overwrite');
-  });
+
+  //pdf
+  Route::get('/permintaan/export-pdf', [PermintaanDarahController::class, 'exportPDF'])->name('permintaan.export-pdf');
+  Route::get('/prediksi/export-pdf', [PredictionController::class, 'exportPDF'])->name('prediksi.export-pdf');
+   Route::get('/pengujian/export-pdf', [PengujianController::class, 'exportPDF'])->name('pengujian.export-pdf');
+});
 
 
 

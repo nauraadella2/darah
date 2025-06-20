@@ -3,11 +3,15 @@
 @section('content')
     <div class="container">
         <div class="prediction-header">
-            <h2><i class="bx bx-test-tube"></i> Pengujian Prediksi vs Aktual</h2>
+            <h2><i class="bx bx-test-tube"></i> Pengujian</h2>
             <div class="header-info">
-               <span class="training-data" style="color: #e63946; font-weight: 500; background-color: #ffebee; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #c62828;">
-    Membandingkan tahun {{ $tahun['tahun'] }} (aktual) dengan {{ $tahun['tahun'] }} (prediksi)
-</span>
+                <span class="training-data"
+                    style="color: #e63946; font-weight: 500; background-color: #ffebee; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #c62828;">
+                    Membandingkan tahun {{ $tahun['tahun'] }} (aktual) dengan {{ $tahun['tahun'] }} (prediksi)
+                </span>
+                <a href="{{ route('admin.pengujian.export-pdf') }}" class="btn-pdf">
+                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                </a>
             </div>
         </div>
 
@@ -37,28 +41,30 @@
         </div>
 
         <!-- Grafik Perbandingan -->
-        <div class="chart-card" style="border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-    <div class="card-header" style="padding: 16px; border-bottom: 1px solid #f5f5f5; background-color: #fff;">
-        <h3 style="margin: 0; font-size: 1.1rem; color: #333; display: flex; align-items: center; gap: 8px;">
-            <i class="bx bx-line-chart" style="color: #e63946; font-size: 1.3rem;"></i>
-            Grafik Perbandingan
-        </h3>
-        <div class="chart-controls" style="margin-top: 8px;">
-            <button id="toggleChartType" class="btn-outline" style="background: none; border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; color: #555; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;">
-                <i class="bx bx-bar-chart" style="color: #e63946;"></i>
-                Bar Chart
-            </button>
+        <div class="chart-card"
+            style="border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div class="card-header" style="padding: 3px; border-bottom: 1px solid #f5f5f5; background-color: #fff;">
+                <h3 style="margin: 0; font-size: 0.9 rem; color: #333; display: flex; align-items: center; gap: 8px;">
+                    <i style="color: #e63946; font-size: 1.0rem;"></i>
+                    Grafik Perbandingan
+                </h3>
+                <div class="chart-controls" style="margin-top: 8px;">
+                    <button id="toggleChartType" class="btn-outline"
+                        style="background: none; border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; color: #555; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;">
+                        <i class="bx bx-bar-chart" style="color: #e63946;"></i>
+                        Bar Chart
+                    </button>
+                </div>
+            </div>
+            <div class="card-body" style="padding: 16px; background-color: #fafafa;">
+                <canvas id="comparisonChart" height="40" width="100"></canvas>
+            </div>
         </div>
-    </div>
-    <div class="card-body" style="padding: 16px; background-color: #fafafa;">
-        <canvas id="comparisonChart" height="40" width="100"></canvas>
-    </div>
-</div>
 
         <!-- Tabel Perbandingan -->
         <div class="table-card">
             <div class="card-header">
-                <h3><i class="bx bx-table"></i> Tabel Perbandingan</h3>
+                <h3>Tabel Perbandingan</h3>
                 <div class="table-controls">
                     <span class="table-info" id="tableInfo">Total: {{ count($hasilPengujian) }} data</span>
                 </div>
@@ -101,34 +107,76 @@
             </div>
         </div>
 
-        <!-- Summary -->
-        <div class="summary-card">
-            <div class="card-header">
-                <h3><i class="bx bx-stats"></i> Ringkasan Pengujian</h3>
-            </div>
-            <div class="card-body">
-                <div class="summary-stats" id="summaryStats">
-                    <div class="stat-item">
-                        <span class="stat-label">Rata-rata Error</span>
-                        <span class="stat-value" id="avgError">{{ number_format($averageError, 2) }}%</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Prediksi Terbaik</span>
-                        <span class="stat-value" id="bestPred">{{ $bestPrediction['golongan'] }}
-                            ({{ $bestPrediction['error'] }}%)</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Prediksi Terburuk</span>
-                        <span class="stat-value" id="worstPred">{{ $worstPrediction['golongan'] }}
-                            ({{ $worstPrediction['error'] }}%)</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Data Ditampilkan</span>
-                        <span class="stat-value" id="dataCount">{{ count($hasilPengujian) }}</span>
+        <div class="dashboard-cards">
+            <!-- Card Total Permintaan Darah -->
+            <div class="dashboard-card total-card">
+                <div class="card-header">
+                    <h3><i class="bx bxs-droplet"></i> Total Permintaan Darah</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table id="comparisonTable">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Golongan Darah</th>
+                                    <th class="text-end">Rata-rata MAPE</th>
+                                    <th class="text-end pe-4">Jumlah Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($summaryResults as $summary)
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2">
+                                                {{ $summary['golongan'] }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span
+                                                class="fw-semibold {{ $summary['mape'] > 20 ? 'text-danger' : ($summary['mape'] > 10 ? 'text-warning' : 'text-success') }}">
+                                                {{ number_format($summary['mape'], 2) }}%
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-4">{{ $summary['jumlah_data'] }}</td>
+                                    </tr>
+                                @endforeach
+                                <tr class="bg-light fw-bold">
+                                    <td class="ps-4">Total Rata-rata</td>
+                                    <td class="text-end">
+                                        <span
+                                            class="{{ $mape > 20 ? 'text-danger' : ($mape > 10 ? 'text-warning' : 'text-success') }}">
+                                            {{ number_format($mape, 2) }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        {{ array_sum(array_column($summaryResults, 'jumlah_data')) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+
+            <!-- Card Action Buttons -->
+            <div class="dashboard-card action-card">
+                <div class="card-header">
+                    <h3><i class="bx bx-plus-circle"></i>Prediksi Terbaik</h3>
+                </div>
+                <div class="card-body action-buttons">
+                    <button style="border: none"class="btn-action btn-one-data">
+                        Golongan {{ $bestPrediction['golongan'] }} ({{ $bestPrediction['bulan'] }})<br>
+                        <span class="fw-medium">{{ number_format($bestPrediction['error'], 2) }}% MAPE</span>
+                    </button>
+                    <button style="border: none"class="btn-action btn-two-data">
+                        Golongan {{ $worstPrediction['golongan'] }} ({{ $worstPrediction['bulan'] }})<br>
+                                    <span class="fw-medium">{{ number_format($worstPrediction['error'], 2) }}% MAPE</span>
+                    </button>
+                </div>
+            </div>
         </div>
+
+
         <style>
             /* Tema Merah Utama */
             :root {
@@ -138,7 +186,7 @@
                 --secondary-color: #b91c1c;
                 --accent-color: #ef4444;
                 --text-color: #333;
-                --light-bg: #fff5f5;
+                --light-bg: #eeecec;
                 --success-color: #166534;
                 --error-color: #b91c1c;
                 --warning-color: #d97706;
@@ -150,6 +198,163 @@
                 line-height: 1.6;
                 color: var(--text-color);
                 background-color: var(--light-bg);
+            }
+
+            .btn-action {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 16px;
+                font-size: 0.95rem;
+                text-decoration: none;
+                color: #fff;
+                border-radius: 8px;
+                transition: all 0.2s ease;
+                justify-content: center;
+                font-weight: 500;
+            }
+
+            .btn-one-data {
+                background-color: #a0c7a4;
+            }
+
+            .btn-two-data {
+                background-color: #f97316;
+            }   
+
+            .btn-action:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            .btn-one-data:hover {
+                background-color: #dc2626;
+            }
+
+            .btn-two-data:hover {
+                background-color: #ea580c;
+            }
+
+            .dashboard-container {
+                padding: 20px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            .dashboard-header {
+                margin-bottom: 20px;
+                color: #333;
+            }
+
+            .dashboard-header h2 {
+                font-weight: 600;
+                font-size: 1.8rem;
+            }
+
+            .dashboard-header i {
+                color: #ef4444;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .dashboard-cards {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+
+            .dashboard-card {
+                background: #fff;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                flex: 1;
+                min-width: 300px;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .dashboard-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .total-card {
+                flex: 2;
+            }
+
+            .action-card {
+                flex: 1;
+            }
+
+            .card-header {
+                padding: 16px 20px;
+                border-bottom: 1px solid #f3f4f6;
+                font-size: 16px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: #333;
+                background-color: #fff;
+                border-radius: 10px 10px 0 0;
+            }
+
+            .card-header h3 {
+                margin: 0;
+                font-size: 1.1rem;
+            }
+
+            .card-header i {
+                color: #ef4444;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+
+            .total-count {
+                font-size: 2.5rem;
+                font-weight: 700;
+                color: #ef4444;
+                margin: 10px 0;
+            }
+
+            .total-count span {
+                font-size: 1rem;
+                color: #6b7280;
+                font-weight: 500;
+            }
+
+            .update-info {
+                margin-top: 10px;
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .btn-action {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 16px;
+                font-size: 0.95rem;
+                text-decoration: none;
+                color: #fff;
+                border-radius: 8px;
+                transition: all 0.2s ease;
+                justify-content: center;
+                font-weight: 500;
             }
 
             .container {
@@ -191,9 +396,9 @@
             }
 
             .card-header {
-                background-color: var(--primary-color);
+                background-color: var(--primary-light);
                 color: white;
-                padding: 15px 20px;
+                padding: 5px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -323,7 +528,7 @@
             }
 
             .table-info {
-                color: white;
+                color: rgb(49, 44, 44);
                 font-size: 0.9rem;
             }
 
@@ -367,18 +572,18 @@
             }
 
             #comparisonTable thead {
-                background-color: var(--primary-color);
+                background-color: var(--primary-light);
                 color: white;
             }
 
             #comparisonTable th {
-                padding: 15px;
+                padding: 5px;
                 text-align: center;
                 font-weight: 600;
                 letter-spacing: 0.5px;
                 border: none;
-                color: white;
-                background-color: var(--primary-color);
+                color: rgb(56, 40, 40);
+                background-color: var(--primary-light);
             }
 
             #comparisonTable td {
@@ -513,6 +718,36 @@
                 #comparisonTable td {
                     min-width: 120px;
                 }
+            }
+
+
+            /* Style unik untuk komponen Riwayat Prediksi */
+            .pantau-table th,
+            .pantau-table td {
+                vertical-align: middle;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+
+            .pantau-th {
+                font-weight: 600;
+                background-color: #f9f9fb;
+                color: #5a5a5a;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .pantau-td {
+                color: #333;
+                border-top: 1px solid #f0f0f0;
+            }
+
+            .pantau-table tbody tr:hover {
+                background-color: #fff3f3;
+                /* merah lembut saat hover */
+            }
+
+            .pantau-card .card-header h5 i {
+                color: #dc3545;
             }
         </style>
     </div>

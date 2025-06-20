@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use DateTime;
+use Barryvdh\DomPDF\Facade\Pdf;
+// use Carbon\Carbon;
 
 class PredictionController extends Controller
 {
@@ -234,4 +236,43 @@ class PredictionController extends Controller
             }
         }
     }
+
+    public function exportPDF()
+{
+    $predictions = PrediksiDarah::query()
+        ->select('tahun', 'bulan', 'golongan_darah', 'jumlah')
+        ->orderBy('tahun')
+        ->orderBy('bulan')
+        ->get()
+        ->groupBy(['tahun', 'bulan'])
+        ->map(function($yearGroup) {
+            return $yearGroup->map(function($monthGroup) {
+                $monthName = \Carbon\Carbon::create()
+                    ->month($monthGroup->first()->bulan)
+                    ->format('F');
+                
+                return [
+                    'tahun' => $monthGroup->first()->tahun,
+                    'bulan' => $monthGroup->first()->bulan,
+                    'gol_a' => $monthGroup->where('golongan_darah', 'A')->first()->jumlah ?? 0,
+                    'gol_b' => $monthGroup->where('golongan_darah', 'B')->first()->jumlah ?? 0,
+                    'gol_ab' => $monthGroup->where('golongan_darah', 'AB')->first()->jumlah ?? 0,
+                    'gol_o' => $monthGroup->where('golongan_darah', 'O')->first()->jumlah ?? 0,
+                    'tanggal' => $monthName . ' ' . $monthGroup->first()->tahun
+                ];
+            });
+        })
+        ->flatten(1)
+        ->values()
+        ->toArray();
+
+    $pdf = Pdf::loadView('admin.prediksi_pdf', compact('predictions'))
+        ->setPaper('a4', 'landscape')
+        ->setOption('margin-top', 10)
+        ->setOption('margin-bottom', 10)
+        ->setOption('margin-left', 10)
+        ->setOption('margin-right', 10);
+    
+    return $pdf->download('prediksi_darah_'.date('YmdHis').'.pdf');
+}
 }

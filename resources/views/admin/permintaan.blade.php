@@ -8,14 +8,12 @@
             <div class="action-group">
                 <button class="btn-primary" onclick="openModal()">+ Input Satu Data</button>
                 <a href="{{ route('admin.input') }}" class="btn-secondary">📑 Input Banyak Data</a>
+                <a href="{{ route('admin.permintaan.export-pdf') }}" class="btn-pdf">
+                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                </a>
+                </a>
             </div>
         </div>
-
-        @if(session('success'))
-            <div class="alert alert-success" style="margin: 20px 0; padding: 15px; background-color: #d4edda; color: #155724; border-radius: 4px;">
-                {{ session('success') }}
-            </div>
-        @endif
 
         <!-- Grafik Permintaan Darah -->
         <div class="chart-container" style="">
@@ -44,8 +42,10 @@
                             <td>{{ $item['gol_ab'] }}</td>
                             <td>{{ $item['gol_o'] }}</td>
                             <td style="display: flex; gap: 8px;">
-                                <button class="btn-edit" onclick="editData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')">Edit</button>
-                                <button class="btn-delete" onclick="deleteData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')">Hapus</button>
+                                <button class="btn-edit"
+                                    onclick="editData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')">Edit</button>
+                                <button class="btn-delete"
+                                    onclick="deleteData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')">Hapus</button>
                             </td>
                         </tr>
                     @endforeach
@@ -54,116 +54,126 @@
         </div>
 
         <!-- Modal input satu data -->
-<div id="modalInput" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Input Permintaan Darah</h2>
-            <span class="close" onclick="closeModal()">&times;</span>
+        <div id="modalInput" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Input Permintaan Darah</h2>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <form id="singleDataForm">
+                    @csrf
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="tahun">Tahun</label>
+                            <input type="number" id="tahun" name="tahun" class="form-control" required min="2000"
+                                max="2100" value="{{ date('Y') }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bulan">Bulan</label>
+                            <select id="bulan" name="bulan" class="form-control" required>
+                                @foreach (range(1, 12) as $month)
+                                    <option value="{{ $month }}" {{ $month == date('n') ? 'selected' : '' }}>
+                                        {{ DateTime::createFromFormat('!m', $month)->format('F') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gol_a">Golongan A</label>
+                            <input type="number" id="gol_a" name="gol_a" class="form-control" required
+                                min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gol_b">Golongan B</label>
+                            <input type="number" id="gol_b" name="gol_b" class="form-control" required
+                                min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gol_ab">Golongan AB</label>
+                            <input type="number" id="gol_ab" name="gol_ab" class="form-control" required
+                                min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gol_o">Golongan O</label>
+                            <input type="number" id="gol_o" name="gol_o" class="form-control" required
+                                min="0">
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" onclick="closeModal()" class="btn-secondary">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <form id="singleDataForm">
-            @csrf
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="tahun">Tahun</label>
-                    <input type="number" id="tahun" name="tahun" class="form-control" required min="2000" max="2100" value="{{ date('Y') }}">
-                </div>
 
-                <div class="form-group">
-                    <label for="bulan">Bulan</label>
-                    <select id="bulan" name="bulan" class="form-control" required>
-                        @foreach(range(1, 12) as $month)
-                            <option value="{{ $month }}" {{ $month == date('n') ? 'selected' : '' }}>
-                                {{ DateTime::createFromFormat('!m', $month)->format('F') }}
-                            </option>
-                        @endforeach
-                    </select>
+        <!-- Modal edit data -->
+        <div id="modalEdit" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Permintaan Darah</h2>
+                    <span class="close" onclick="closeEditModal()">&times;</span>
                 </div>
+                <form id="editDataForm">
+                    @csrf
+                    <input type="hidden" name="id" id="editId">
 
-                <div class="form-group">
-                    <label for="gol_a">Golongan A</label>
-                    <input type="number" id="gol_a" name="gol_a" class="form-control" required min="0">
-                </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editTahun">Tahun</label>
+                            <input type="number" id="editTahun" name="tahun" class="form-control" required
+                                min="2000" max="2100">
+                        </div>
 
-                <div class="form-group">
-                    <label for="gol_b">Golongan B</label>
-                    <input type="number" id="gol_b" name="gol_b" class="form-control" required min="0">
-                </div>
+                        <div class="form-group">
+                            <label for="editBulan">Bulan</label>
+                            <select id="editBulan" name="bulan" class="form-control" required>
+                                @foreach (range(1, 12) as $month)
+                                    <option value="{{ $month }}">
+                                        {{ DateTime::createFromFormat('!m', $month)->format('F') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                <div class="form-group">
-                    <label for="gol_ab">Golongan AB</label>
-                    <input type="number" id="gol_ab" name="gol_ab" class="form-control" required min="0">
-                </div>
+                        <div class="form-group">
+                            <label for="editGolA">Golongan A</label>
+                            <input type="number" id="editGolA" name="gol_a" class="form-control" required
+                                min="0">
+                        </div>
 
-                <div class="form-group">
-                    <label for="gol_o">Golongan O</label>
-                    <input type="number" id="gol_o" name="gol_o" class="form-control" required min="0">
-                </div>
+                        <div class="form-group">
+                            <label for="editGolB">Golongan B</label>
+                            <input type="number" id="editGolB" name="gol_b" class="form-control" required
+                                min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editGolAB">Golongan AB</label>
+                            <input type="number" id="editGolAB" name="gol_ab" class="form-control" required
+                                min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editGolO">Golongan O</label>
+                            <input type="number" id="editGolO" name="gol_o" class="form-control" required
+                                min="0">
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" onclick="closeEditModal()" class="btn-secondary">Batal</button>
+                        <button type="submit" class="btn-primary">Simpan Perubahan</button>
+                    </div>
+                </form>
             </div>
-
-            <div class="modal-actions">
-                <button type="button" onclick="closeModal()" class="btn-secondary">Batal</button>
-                <button type="submit" class="btn-primary">Simpan Data</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal edit data -->
-<div id="modalEdit" class="modal hidden">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Edit Permintaan Darah</h2>
-            <span class="close" onclick="closeEditModal()">&times;</span>
         </div>
-        <form id="editDataForm">
-            @csrf
-            <input type="hidden" name="id" id="editId">
-            
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="editTahun">Tahun</label>
-                    <input type="number" id="editTahun" name="tahun" class="form-control" required min="2000" max="2100">
-                </div>
-
-                <div class="form-group">
-                    <label for="editBulan">Bulan</label>
-                    <select id="editBulan" name="bulan" class="form-control" required>
-                        @foreach(range(1, 12) as $month)
-                            <option value="{{ $month }}">
-                                {{ DateTime::createFromFormat('!m', $month)->format('F') }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="editGolA">Golongan A</label>
-                    <input type="number" id="editGolA" name="gol_a" class="form-control" required min="0">
-                </div>
-
-                <div class="form-group">
-                    <label for="editGolB">Golongan B</label>
-                    <input type="number" id="editGolB" name="gol_b" class="form-control" required min="0">
-                </div>
-
-                <div class="form-group">
-                    <label for="editGolAB">Golongan AB</label>
-                    <input type="number" id="editGolAB" name="gol_ab" class="form-control" required min="0">
-                </div>
-
-                <div class="form-group">
-                    <label for="editGolO">Golongan O</label>
-                    <input type="number" id="editGolO" name="gol_o" class="form-control" required min="0">
-                </div>
-            </div>
-
-            <div class="modal-actions">
-                <button type="button" onclick="closeEditModal()" class="btn-secondary">Batal</button>
-                <button type="submit" class="btn-primary">Simpan Perubahan</button>
-            </div>
-        </form>
-    </div>
-</div>
 
         <!-- Confirm Overwrite Modal -->
         <div id="confirmOverwriteModal" class="modal hidden">
@@ -222,7 +232,7 @@
             padding: 5px !important;
         }
 
-         /* Modern Modal Styles */
+        /* Modern Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -232,7 +242,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(2px);
         }
 
@@ -240,10 +250,11 @@
             background-color: white;
             margin: 5% auto;
             padding: 25px;
-            width: 600px; /* Fixed width for better control */
+            width: 600px;
+            /* Fixed width for better control */
             max-width: 90%;
             border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
             position: relative;
             animation: modalFadeIn 0.3s ease-out;
             max-height: 90vh;
@@ -251,8 +262,15 @@
         }
 
         @keyframes modalFadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .modal-header {
@@ -378,7 +396,7 @@
             border-radius: 6px;
             color: white;
             font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 9999;
             display: flex;
             align-items: center;
@@ -404,13 +422,27 @@
         }
 
         @keyframes toastSlideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @keyframes toastSlideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
 
         /* Responsive adjustments */
@@ -418,7 +450,7 @@
             .form-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .modal-content {
                 width: 90%;
                 margin: 10% auto;
@@ -443,7 +475,7 @@
             });
 
             // Show success message from session if exists
-            @if(session('success'))
+            @if (session('success'))
                 showSuccessAlert('{{ session('success') }}');
             @endif
         });
@@ -551,7 +583,7 @@
             }
         });
 
-         // Modal functions
+        // Modal functions
         function openModal() {
             document.getElementById('modalInput').style.display = 'flex';
             document.body.style.overflow = 'hidden';
@@ -587,7 +619,7 @@
         $('#singleDataForm').submit(function(e) {
             e.preventDefault();
             const formData = $(this).serialize();
-            
+
             $.ajax({
                 url: "{{ route('admin.permintaan.single') }}",
                 type: "POST",
@@ -639,92 +671,92 @@
 
         // Edit data
         $('#editDataForm').submit(function(e) {
-    e.preventDefault();
-    const id = $('#editId').val();
-    const formData = $(this).serialize();
-    
-    // Tampilkan loading
-    Swal.fire({
-        title: 'Menyimpan Perubahan',
-        html: 'Sedang menyimpan data...',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    $.ajax({
-        url: `/admin/permintaan/${id}`,
-        type: "PUT",
-        data: formData,
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
+            e.preventDefault();
+            const id = $('#editId').val();
+            const formData = $(this).serialize();
+
+            // Tampilkan loading
             Swal.fire({
-                title: 'Sukses!',
-                text: 'Data berhasil diperbarui',
-                icon: 'success',
-                confirmButtonColor: '#d32f2f',
-                timer: 2000,
-                timerProgressBar: true
-            }).then(() => {
-                location.reload();
+                title: 'Menyimpan Perubahan',
+                html: 'Sedang menyimpan data...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
             });
-        },
-        error: function(xhr) {
-            Swal.fire(
-                'Error!',
-                'Gagal memperbarui data.',
-                'error'
-            );
-        }
-    });
-});
+
+            $.ajax({
+                url: `/admin/permintaan/${id}`,
+                type: "PUT",
+                data: formData,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: 'Sukses!',
+                        text: 'Data berhasil diperbarui',
+                        icon: 'success',
+                        confirmButtonColor: '#d32f2f',
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire(
+                        'Error!',
+                        'Gagal memperbarui data.',
+                        'error'
+                    );
+                }
+            });
+        });
 
         // Tambahkan fungsi ini di bagian script
-function editData(id) {
-    // Ambil tahun dan bulan dari ID
-    const [tahun, bulan] = id.split('-');
-    
-    // Tampilkan loading
-    Swal.fire({
-        title: 'Memuat Data',
-        html: 'Sedang mengambil data...',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
+        function editData(id) {
+            // Ambil tahun dan bulan dari ID
+            const [tahun, bulan] = id.split('-');
 
-    // AJAX request untuk mendapatkan data
-    $.ajax({
-        url: `/admin/permintaan/${id}/edit`,
-        type: "GET",
-        success: function(response) {
-            Swal.close();
-            
-            // Isi form edit dengan data yang diterima
-            $('#editId').val(id);
-            $('#editTahun').val(response.tahun);
-            $('#editBulan').val(response.bulan);
-            $('#editGolA').val(response.gol_a);
-            $('#editGolB').val(response.gol_b);
-            $('#editGolAB').val(response.gol_ab);
-            $('#editGolO').val(response.gol_o);
-            
-            // Buka modal edit
-            openEditModal();
-        },
-        error: function(xhr) {
-            Swal.fire(
-                'Error!',
-                'Gagal memuat data untuk diedit.',
-                'error'
-            );
+            // Tampilkan loading
+            Swal.fire({
+                title: 'Memuat Data',
+                html: 'Sedang mengambil data...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // AJAX request untuk mendapatkan data
+            $.ajax({
+                url: `/admin/permintaan/${id}/edit`,
+                type: "GET",
+                success: function(response) {
+                    Swal.close();
+
+                    // Isi form edit dengan data yang diterima
+                    $('#editId').val(id);
+                    $('#editTahun').val(response.tahun);
+                    $('#editBulan').val(response.bulan);
+                    $('#editGolA').val(response.gol_a);
+                    $('#editGolB').val(response.gol_b);
+                    $('#editGolAB').val(response.gol_ab);
+                    $('#editGolO').val(response.gol_o);
+
+                    // Buka modal edit
+                    openEditModal();
+                },
+                error: function(xhr) {
+                    Swal.fire(
+                        'Error!',
+                        'Gagal memuat data untuk diedit.',
+                        'error'
+                    );
+                }
+            });
         }
-    });
-}
         // Delete data with confirmation
         function deleteData(id) {
             Swal.fire({

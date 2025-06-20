@@ -5,9 +5,13 @@
         <div class="prediction-header">
             <h2><i class="bx bx-trending-up"></i> Prediksi Kebutuhan Darah</h2>
             <div class="header-info">
-               <span class="training-data" style="color: #333; font-weight: 500; border-left: 4px solid #e63946; padding-left: 8px; background-color: #fff5f5;">
-  Data Training: {{ $tahunOptimasi['periode_mulai'] }} - {{ $tahunOptimasi['periode_selesai'] }}
-</span>
+                <span class="training-data"
+                    style="color: #333; font-weight: 500; border-left: 4px solid #e63946; padding-left: 8px; background-color: #fff5f5;">
+                    Data Training: {{ $tahunOptimasi['periode_mulai'] }} - {{ $tahunOptimasi['periode_selesai'] }}
+                </span>
+                <a href="{{ route('admin.prediksi.export-pdf') }}" class="btn-pdf">
+                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                </a>
             </div>
         </div>
 
@@ -31,10 +35,10 @@
                         <label>Jumlah Bulan Prediksi</label>
                         <input type="number" name="periods" min="1" max="12" value="12" required>
                     </div>
-                    <input type="number" name="tahun_mulai" value="{{ $tahunOptimasi['periode_mulai']  }}" hidden>
-                    <input type="number" name="tahun_selesai" value="{{ $tahunOptimasi['periode_selesai']  }}" hidden>
+                    <input type="number" name="tahun_mulai" value="{{ $tahunOptimasi['periode_mulai'] }}" hidden>
+                    <input type="number" name="tahun_selesai" value="{{ $tahunOptimasi['periode_selesai'] }}" hidden>
 
-                    
+
                     <button type="submit" class="btn-submit">
                         <i class="bx bx-play"></i> Proses
                     </button>
