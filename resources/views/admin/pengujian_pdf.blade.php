@@ -35,6 +35,7 @@
             border-collapse: collapse;
             margin-top: 5px;
             font-size: 9px;
+            page-break-inside: avoid;
         }
         th {
             background-color: #d32f2f;
@@ -81,6 +82,11 @@
             font-weight: bold;
             padding: 3px;
             margin-top: 5px;
+            border-left: 3px solid #d32f2f;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f5f5f5;
         }
     </style>
 </head>
@@ -94,7 +100,7 @@
         </div>
     </div>
 
-    @foreach($data as $golongan => $items)
+    @foreach($data as $golongan => $group)
     <div class="section-title">
         Golongan Darah <span class="blood-type blood-type-{{ strtolower($golongan) }}">{{ $golongan }}</span>
     </div>
@@ -110,40 +116,29 @@
             </tr>
         </thead>
         <tbody>
-            @php
-                $totalAktual = 0;
-                $totalPrediksi = 0;
-                $totalError = 0;
-            @endphp
-            
-            @foreach($items as $item)
-            <tr style="font-weight: bold; background-color: #f5f5f5;">
-    <td>TOTAL</td>
-    <td>{{ number_format($totalAktual, 0, ',', '.') }}</td>
-    <td>{{ number_format($totalPrediksi, 0, ',', '.') }}</td>
-    <td class="{{ ($totalPrediksi - $totalAktual) >= 0 ? 'positive' : 'negative' }}">
-        {{ number_format($totalPrediksi - $totalAktual, 0, ',', '.') }}
-    </td>
-    <td>
-        {{ count($items) > 0 ? number_format($totalError / count($items), 2, ',', '.') . '%' : '0%' }}
-    </td>
-</tr>
-            @php
-                $totalAktual += $item['aktual'];
-                $totalPrediksi += $item['prediksi'];
-                $totalError += abs($item['error']);
-            @endphp
+            @foreach($group['items'] as $item)
+            <tr>
+                <td>{{ $item['bulan'] }}</td>
+                <td>{{ number_format($item['aktual'], 0, ',', '.') }}</td>
+                <td>{{ number_format($item['prediksi'], 0, ',', '.') }}</td>
+                <td class="{{ $item['selisih'] >= 0 ? 'positive' : 'negative' }}">
+                    {{ number_format($item['selisih'], 0, ',', '.') }}
+                </td>
+                <td class="{{ $item['error'] > 20 ? 'error-high' : 'error-low' }}">
+                    {{ number_format($item['error'], 2, ',', '.') }}%
+                </td>
+            </tr>
             @endforeach
             
-            <tr style="font-weight: bold; background-color: #f5f5f5;">
+            <tr class="total-row">
                 <td>TOTAL</td>
-                <td>{{ number_format($totalAktual, 0, ',', '.') }}</td>
-                <td>{{ number_format($totalPrediksi, 0, ',', '.') }}</td>
-                <td class="{{ ($totalPrediksi - $totalAktual) >= 0 ? 'positive' : 'negative' }}">
-                    {{ number_format($totalPrediksi - $totalAktual, 0, ',', '.') }}
+                <td>{{ number_format($group['total']['aktual'], 0, ',', '.') }}</td>
+                <td>{{ number_format($group['total']['prediksi'], 0, ',', '.') }}</td>
+                <td class="{{ $group['total']['selisih'] >= 0 ? 'positive' : 'negative' }}">
+                    {{ number_format($group['total']['selisih'], 0, ',', '.') }}
                 </td>
                 <td>
-                    {{ $items->count() > 0 ? number_format($totalError / $items->count(), 2, ',', '.') . '%' : '0%' }}
+                    {{ number_format($group['total']['error'], 2, ',', '.') }}%
                 </td>
             </tr>
         </tbody>

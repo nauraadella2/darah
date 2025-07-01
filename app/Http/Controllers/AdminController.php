@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\PermintaanDarah;
 use App\Models\OptimizedAlpha;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 { 
@@ -132,4 +135,73 @@ public function permintaan()
     {
         return view('admin.input');
     }
+
+//    public function pengguna()
+//     {
+//         return view('admin.pengguna');
+//     }
+
+
+
+public function pengguna()
+{
+    $users = User::orderBy('name')->get();
+    $adminCount = $users->where('role', 'admin')->count();
+    $petugasCount = $users->where('role', 'petugas')->count();
+
+    return view('admin.pengguna', compact('users', 'adminCount', 'petugasCount'));
+}
+
+public function storePengguna(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'role' => 'required|in:admin,petugas',
+        'password' => 'nullable|string|min:6'
+    ]);
+
+    User::create([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        'role' => $validated['role'],
+        'password' => bcrypt($validated['password'] ?? 'password123')
+    ]);
+
+    return response()->json(['message' => 'Pengguna berhasil ditambahkan']);
+}
+
+
+public function updatePengguna(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'role' => 'required|in:admin,petugas',
+        'password' => 'nullable|string|min:6'
+    ]);
+
+    $updateData = $validated;
+    if (!empty($validated['password'])) {
+        $updateData['password'] = bcrypt($validated['password']);
+    } else {
+        unset($updateData['password']); // jgn ubah password kalau kosong
+    }
+
+    $user->update($updateData);
+
+    return response()->json(['message' => 'Pengguna berhasil diperbarui']);
+}
+
+
+public function destroyPengguna($id)
+{
+    $user = User::findOrFail($id);
+    $user->delete();
+
+    return response()->json(['message' => 'Pengguna berhasil dihapus']);
+}
+
 }

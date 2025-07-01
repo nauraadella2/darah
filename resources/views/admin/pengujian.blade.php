@@ -3,7 +3,9 @@
 @section('content')
     <div class="container">
         <div class="prediction-header">
-            <h2><i class="bx bx-test-tube"></i> Pengujian</h2>
+            <div class="dashboard-header">
+                <h2><i class="bx bx-check-shield"></i> Halaman Pengujian</h2>
+            </div>
             <div class="header-info">
                 <span class="training-data"
                     style="color: #e63946; font-weight: 500; background-color: #ffebee; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #c62828;">
@@ -161,7 +163,7 @@
             <!-- Card Action Buttons -->
             <div class="dashboard-card action-card">
                 <div class="card-header">
-                    <h3><i class="bx bx-plus-circle"></i>Prediksi Terbaik</h3>
+                    <h3><i class="bx bx-plus-circle"></i>Evaluasi Prediksi</h3>
                 </div>
                 <div class="card-body action-buttons">
                     <button style="border: none"class="btn-action btn-one-data">
@@ -170,7 +172,7 @@
                     </button>
                     <button style="border: none"class="btn-action btn-two-data">
                         Golongan {{ $worstPrediction['golongan'] }} ({{ $worstPrediction['bulan'] }})<br>
-                                    <span class="fw-medium">{{ number_format($worstPrediction['error'], 2) }}% MAPE</span>
+                        <span class="fw-medium">{{ number_format($worstPrediction['error'], 2) }}% MAPE</span>
                     </button>
                 </div>
             </div>
@@ -191,6 +193,7 @@
                 --error-color: #b91c1c;
                 --warning-color: #d97706;
                 --info-color: #2563eb;
+                --header-color: #000000;
             }
 
             body {
@@ -220,7 +223,7 @@
 
             .btn-two-data {
                 background-color: #f97316;
-            }   
+            }
 
             .btn-action:hover {
                 transform: translateY(-1px);
@@ -371,7 +374,7 @@
             }
 
             .prediction-header h2 {
-                color: var(--primary-dark);
+                color: var(--header-color);
                 margin-bottom: 5px;
                 display: flex;
                 align-items: center;
@@ -873,28 +876,34 @@
 
                 Object.keys(groupedData).forEach(type => {
                     if (groupedData[type].months.length > 0) {
-                        // Data aktual
+                        // Data aktual (garis putus-putus)
+                        // Data aktual (tetap bulat di chart)
                         datasets.push({
                             label: `Aktual ${type}`,
                             data: groupedData[type].actual,
                             borderColor: bloodTypeColors[type].color,
-                            backgroundColor: bloodTypeColors[type].bgColor,
-                            borderWidth: currentChartType === 'line' ? 2 : 0,
-                            borderDash: currentChartType === 'line' ? [5, 5] : [],
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5], // Garis putus-putus di chart
                             tension: 0.1,
-                            fill: false
+                            fill: false,
+                            pointStyle: 'circle', // Tetap bulat di chart
+                            pointRadius: 5,
+                            pointHoverRadius: 7
                         });
 
-                        // Data prediksi
+                        // Data prediksi (tetap bulat di chart)
                         datasets.push({
                             label: `Prediksi ${type}`,
                             data: groupedData[type].predicted,
                             borderColor: bloodTypeColors[type].color,
-                            backgroundColor: currentChartType === 'bar' ? bloodTypeColors[type]
-                                .color : bloodTypeColors[type].bgColor,
-                            borderWidth: currentChartType === 'line' ? 3 : 0,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3, // Garis solid lebih tebal
                             tension: 0.3,
-                            fill: false
+                            fill: false,
+                            pointStyle: 'circle', // Tetap bulat di chart
+                            pointRadius: 5,
+                            pointHoverRadius: 7
                         });
                     }
                 });
@@ -914,65 +923,53 @@
                         datasets: datasets
                     },
                     options: {
-                        responsive: true,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `Perbandingan Aktual vs Prediksi ${bloodType === 'all' ? 'Semua Golongan' : 'Golongan ' + bloodType}`,
-                                font: {
-                                    size: 16,
-                                    weight: 'bold'
-                                },
-                                color: '#7f1d1d'
-                            },
-                            legend: {
-                                position: 'top',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20,
-                                    font: {
-                                        weight: 'bold'
-                                    }
+    plugins: {
+        legend: {
+            labels: {
+                usePointStyle: false, // Nonaktifkan point style default
+                generateLabels: function(chart) {
+                    const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                    return labels.map(label => {
+                        return {
+                            ...label,
+                            // Hapus marker (pointStyle) di legend
+                            pointStyle: undefined,
+                            // Custom renderer untuk garis saja
+                            render: function(ctx, options) {
+                                const { text, lineWidth, fillStyle, strokeStyle, fontColor } = options;
+                                const { ctx: context } = chart;
+                                
+                                // Draw text
+                                context.fillStyle = fontColor;
+                                context.font = options.font.string;
+                                context.fillText(text, 40, 10);
+                                
+                                // Draw line (untuk Aktual/Prediksi)
+                                context.save();
+                                context.strokeStyle = strokeStyle;
+                                context.lineWidth = lineWidth;
+                                
+                                if (text.includes('Aktual')) {
+                                    // Garis putus-putus untuk Aktual
+                                    context.setLineDash([5, 5]);
+                                } else {
+                                    // Garis solid untuk Prediksi
+                                    context.setLineDash([]);
                                 }
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false,
-                                callbacks: {
-                                    label: function(context) {
-                                        return `${context.dataset.label}: ${context.raw} kantong`;
-                                    }
-                                }
+                                
+                                context.beginPath();
+                                context.moveTo(0, 10);
+                                context.lineTo(30, 10);
+                                context.stroke();
+                                context.restore();
                             }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Jumlah Kantong Darah',
-                                    color: '#7f1d1d'
-                                },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
-                                }
-                            },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Bulan',
-                                    color: '#7f1d1d'
-                                },
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        },
-                        interaction: {
-                            intersect: false,
-                            mode: 'nearest'
-                        }
-                    }
+                        };
+                    });
+                }
+            }
+        }
+    }
+}
                 });
             }
 

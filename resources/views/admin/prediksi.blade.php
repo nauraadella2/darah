@@ -3,7 +3,9 @@
 @section('content')
     <div class="prediction-container">
         <div class="prediction-header">
-            <h2><i class="bx bx-trending-up"></i> Prediksi Kebutuhan Darah</h2>
+            <div class="dashboard-header">
+        <h2><i class="bx bx-bar-chart-alt"></i> Halaman Prediksi</h2>
+    </div>
             <div class="header-info">
                 <span class="training-data"
                     style="color: #333; font-weight: 500; border-left: 4px solid #e63946; padding-left: 8px; background-color: #fff5f5;">

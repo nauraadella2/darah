@@ -2,9 +2,8 @@
 
 @section('content')
     <div class="prediction-container">
-
-        <div class="prediction-header">
-            <h2><i class="bx bx-cog"></i> Optimasi Parameter Peramalan</h2>
+        <div class="dashboard-header">
+            <h2><i class="bx bx-rocket"></i> Halaman Optimasi</h2>
         </div>
 
         @if (session('success'))

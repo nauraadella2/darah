@@ -2,22 +2,22 @@
 
 @section('content')
     <div class="container-permintaan">
-        <div class="header-permintaan">
-            <h1>Data Permintaan Darah</h1>
+        <div class="header-permintaan" style="display: flex; align-items: center;">
+            <div class="dashboard-header">
+                <h2><i class="bx bx-history"></i> Halaman Data Historis</h2>
+            </div>
 
             <div class="action-group">
-                <button class="btn-primary" onclick="openModal()">+ Input Satu Data</button>
+                <button class="btn-pdf" onclick="openModal()">+ Input Satu Data</button>
                 <a href="{{ route('admin.input') }}" class="btn-secondary">📑 Input Banyak Data</a>
                 <a href="{{ route('admin.permintaan.export-pdf') }}" class="btn-pdf">
                     <i class="fas fa-file-pdf"></i> Cetak PDF
-                </a>
                 </a>
             </div>
         </div>
 
         <!-- Grafik Permintaan Darah -->
         <div class="chart-container" style="">
-            <h2 style="color: #d32f2f; margin-bottom: 20px;">Grafik Permintaan Darah</h2>
             <canvas id="permintaanChart" height="40" width="100"></canvas>
         </div>
 
@@ -42,10 +42,12 @@
                             <td>{{ $item['gol_ab'] }}</td>
                             <td>{{ $item['gol_o'] }}</td>
                             <td style="display: flex; gap: 8px;">
-                                <button class="btn-edit"
-                                    onclick="editData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')">Edit</button>
-                                <button class="btn-delete"
-                                    onclick="deleteData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')">Hapus</button>
+                                <button class="btn-aksi edit-btn"
+                                    onclick="editData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')"><i
+                                        class="bx bx-edit"></i></button>
+                                <button class="btn-aksi delete-btn"
+                                    onclick="deleteData('{{ $item['tahun'] }}-{{ $item['bulan'] }}')"><i
+                                        class="bx bx-trash"></i></button>
                             </td>
                         </tr>
                     @endforeach
@@ -202,34 +204,71 @@
     </div>
 @endsection
 
+<style>
+    .btn-aksi {
+        border: none;
+        background: none;
+        padding: 6px 8px;
+        margin-right: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .edit-btn {
+        color: #f59e0b;
+    }
+
+    .delete-btn {
+        color: #ef4444;
+    }
+
+    .btn-aksi:hover {
+        transform: scale(1.1);
+    }
+
+    /* Table Styles */
+    .table-container {
+        margin-top: 30px;
+        background: #F4F5F7;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead {
+        background-color: #fee2e2;
+        color: #291d1d;
+    }
+
+    .data-table th {
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: 500;
+    }
+
+    .data-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #978e8e;
+        background-color: #F4F5F7;
+    }
+
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .data-table tr:hover {
+        background-color: #fee2e2;
+    }
+</style>
 @push('styles')
     <style>
         /* DataTables Custom */
         #myTable_wrapper {
             margin-top: 20px;
-        }
-
-        #myTable thead th {
-            background-color: #d32f2f !important;
-            color: white !important;
-        }
-
-        #myTable tbody tr:nth-child(even) {
-            background-color: #ffebee !important;
-        }
-
-        #myTable tbody tr:hover {
-            background-color: #ffcdd2 !important;
-        }
-
-        .dataTables_filter input {
-            border: 1px solid #ddd !important;
-            padding: 5px !important;
-        }
-
-        .dataTables_length select {
-            border: 1px solid #ddd !important;
-            padding: 5px !important;
         }
 
         /* Modern Modal Styles */
@@ -339,6 +378,27 @@
             margin-top: 25px;
             padding-top: 15px;
             border-top: 1px solid #eee;
+        }
+
+        .btn-aksi {
+            border: none;
+            background: none;
+            padding: 6px 8px;
+            margin-right: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .edit-btn {
+            color: #f59e0b;
+        }
+
+        .delete-btn {
+            color: #ef4444;
+        }
+
+        .btn-aksi:hover {
+            transform: scale(1.1);
         }
 
         .btn-primary {

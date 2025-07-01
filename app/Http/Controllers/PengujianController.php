@@ -204,48 +204,77 @@ class PengujianController extends Controller
     }
 
     public function exportPDF()
-    {
-        $tahun = PrediksiDarah::select('tahun')->first();
+{
+    $tahun = PrediksiDarah::select('tahun')->first();
+    
+    // Ambil data aktual
+    $aktualData = PermintaanDarah::where('tahun', $tahun->tahun)
+        ->orderBy('bulan')
+        ->orderBy('golongan_darah')
+        ->get()
+        ->groupBy('golongan_darah');
+    
+    // Ambil data prediksi
+    $prediksiData = PrediksiDarah::where('tahun', $tahun->tahun)
+        ->orderBy('bulan')
+        ->orderBy('golongan_darah')
+        ->get()
+        ->groupBy('golongan_darah');
+    
+    // Format data untuk PDF
+    $formattedData = [];
+    $golonganDarah = ['A', 'B', 'AB', 'O'];
+    
+    foreach ($golonganDarah as $golongan) {
+        $items = [];
         
-        // Ambil data dan hitung metrik
-        $data = PermintaanDarah::where('tahun', $tahun->tahun)
-            ->orderBy('bulan')
-            ->orderBy('golongan_darah')
-            ->get()
-            ->map(function($item) use ($tahun) {
-                $prediksi = PrediksiDarah::where('tahun', $tahun->tahun)
-                    ->where('bulan', $item->bulan)
-                    ->where('golongan_darah', $item->golongan_darah)
-                    ->first();
-                
-                // Selisih absolut
-                $selisih = $prediksi ? abs($prediksi->jumlah - $item->jumlah) : 0;
-                
-                // Hitung error dengan penanganan pembagian nol
-                $error = 0;
-                if ($item->jumlah != 0 && $prediksi) {
-                    $error = ($selisih / $item->jumlah) * 100;
-                }
-                
-                return [
-                    'bulan' => Carbon::create()->month($item->bulan)->format('F'),
-                    'golongan' => $item->golongan_darah,
-                    'aktual' => $item->jumlah,
-                    'prediksi' => $prediksi->jumlah ?? 0,
-                    'selisih' => $selisih,
-                    'error' => round($error, 2)
-                ];
-            })
-            ->groupBy('golongan');
-
-        $pdf = Pdf::loadView('admin.pengujian_pdf', [
-                'data' => $data,
-                'tahun' => $tahun->tahun
-            ])
-            ->setPaper('a4', 'landscape');
-
-        return $pdf->download('laporan_pengujian_'.date('YmdHis').'.pdf');
+        // Data per bulan
+        for ($bulan = 1; $bulan <= 12; $bulan++) {
+            $aktual = $aktualData->get($golongan)?->where('bulan', $bulan)->first()->jumlah ?? 0;
+            $prediksi = $prediksiData->get($golongan)?->where('bulan', $bulan)->first()->jumlah ?? 0;
+            $selisih = $prediksi - $aktual;
+            
+            // Hitung error dengan penanganan pembagian nol
+            $error = 0;
+            if ($aktual != 0) {
+                $error = (abs($selisih) / $aktual) * 100;
+            }
+            
+            $items[] = [
+                'bulan' => Carbon::create()->month($bulan)->translatedFormat('F'),
+                'aktual' => $aktual,
+                'prediksi' => $prediksi,
+                'selisih' => $selisih,
+                'error' => round($error, 2)
+            ];
+        }
+        
+        // Hitung total
+        $totalAktual = collect($items)->sum('aktual');
+        $totalPrediksi = collect($items)->sum('prediksi');
+        $totalSelisih = $totalPrediksi - $totalAktual;
+        $totalError = collect($items)->avg('error');
+        
+        $formattedData[$golongan] = [
+            'items' => $items,
+            'total' => [
+                'aktual' => $totalAktual,
+                'prediksi' => $totalPrediksi,
+                'selisih' => $totalSelisih,
+                'error' => round($totalError, 2)
+            ]
+        ];
     }
+    
+    $pdf = Pdf::loadView('admin.pengujian_pdf', [
+            'data' => $formattedData,
+            'tahun' => $tahun->tahun
+        ])
+        ->setPaper('a4', 'landscape')
+        ->setOption('enable-local-file-access', true);
+
+    return $pdf->download('laporan_pengujian_'.date('YmdHis').'.pdf');
+}
 
     // ... (method filter() dan store() tetap sama seperti sebelumnya)
 
