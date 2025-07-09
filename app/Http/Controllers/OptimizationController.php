@@ -56,7 +56,10 @@ class OptimizationController extends Controller
             ->toArray();
 
         try {
-            $response = Http::asJson()->post('http://localhost:5000/optimize', $dataTraining);
+            $response = Http::timeout(120)
+                ->asJson()
+                ->post('http://127.0.0.1:5000/optimize', $dataTraining);
+
             $result = $response->json();
 
             if ($response->successful() && $result['status'] === 'success') {
@@ -66,7 +69,7 @@ class OptimizationController extends Controller
                     $validated['tahun_selesai'],
                     Auth::id()
                 );
-                
+
                 foreach (['A', 'B', 'AB', 'O'] as $golongan) {
                     $hasil[$golongan] = Optimasi::where('golongan_darah', $golongan)
                         ->latest()
